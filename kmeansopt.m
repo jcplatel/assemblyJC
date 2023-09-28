@@ -57,6 +57,7 @@ for i = 1:NCl
     sCl(i) = median(s(IDX==i));
 end
 
+%sort RACE/silhouette of best cluster
 [sCl,xCl] = sort(sCl,'descend');
 IDXs = zeros(1,Ne);
 for i = 1:NCl

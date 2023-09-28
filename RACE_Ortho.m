@@ -59,17 +59,17 @@ end
 C0 = cell(0);
 k = 0;
 for i = 1:NCl
-    if length(find(CellCl(i,:)))>5% is this the limit of cell per assembly ???it seems
+    if length(find(CellCl(i,:)))>5 % is this the limit of cell per assembly ???it seems
         k = k+1;
         C0{k} = find(CellCl(i,:));
     end
 end
 assemblyortho=C0;
-save([namefull 'assemblyortho'],'assemblyortho')%
+%save([namefull 'assemblyortho'],'assemblyortho')%
 
 %Participation rate to its own cluster
 CellRCl = max(CellR([A1 A2],:),[],2);
-save([namefull 'CellRCl'],'CellRCl')
+% save([namefull 'CellRCl'],'CellRCl')
 %% Assign RACE to groups of cells      #####didn't get that....
 
 NCl = length(C0);
@@ -77,6 +77,7 @@ NCl = length(C0);
 %Cell count in each cluster
 RCl = zeros(NCl,NRace);
 PCl = zeros(NCl,NRace);
+
 for i = 1:NCl
     RCl(i,:) = sum(Race(C0{i},:));   %sum sce from assembly assigned to cluster
 end
@@ -106,7 +107,7 @@ for j = 1:NRace  %permutation of SCE
     %Normalize (probability)
     RCln(:,j) = RCl(:,j)/sum(Race(:,j));
 end
-save([namefull,'RaceCl2'],'PCl')
+% save([namefull,'RaceCl2'],'PCl')
 
 %% Show Sorted Rasterplot
 
@@ -156,6 +157,7 @@ RList = [Cl0 Cl1 Cl2 Cl3 Cl4];
 figure
 % f = figure('visible','off');f
 imagesc(Race(x1,RList))
+
 %Show with replay
 % load('TestRACESeq')
 % load('CorrRACESeq')
@@ -167,6 +169,6 @@ imagesc(Race(x1,RList))
 % imagesc(Race(x1,RList) - RaceReplay(x1,RList)/2)
 % imagesc(Race(x1,RList) - RaceFwdReplay(x1,RList)/3 - 2*RaceBwdReplay(x1,RList)/3)
 colormap hot
-axis image
+axis tight
 exportgraphics(gcf,[namefull 'cell_assemblies.png'],'Resolution',300)
 
