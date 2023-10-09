@@ -36,8 +36,15 @@ tic
 
 %% Load settings
 % filename= '/Users/platel/Desktop/exp/aurelie/444175_new/P2M_444175_221125_plane1_2023_01_09.09-19-40.nwb';
-path='/Users/platel/Desktop/exp/';
-name='testsofia';
+% path='/Users/platel/Desktop/exp/';
+% name='testsofia';
+% % PathSave='/Users/platel/Desktop/exp/analysis/';
+% PathSave='/Users/platel/Desktop/exp/analysis/';
+% 
+% daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
+% namefull=[PathSave daytime name '/'];
+% mkdir (namefull)    % make folder for saving analysis
+% disp(['make new folder ' namefull])
 
 MinPeakDistancesce=3 ;
 %synchronous_frames=2;
@@ -46,13 +53,7 @@ MinPeakDistance=3;
 sampling_rate=5;%; already loaded in nwb
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
 
-% PathSave='/Users/platel/Desktop/exp/analysis/';
-PathSave='/Users/platel/Desktop/exp/analysis/';
 
- daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
- namefull=[PathSave daytime name '/'];
- mkdir (namefull)    % make folder for saving analysis
-disp(['make new folder ' namefull])
 
 %% Load current data
 % tic
