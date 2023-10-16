@@ -2,12 +2,10 @@ clear
 close all
 %path data
 % path='/Users/platel/Desktop/exp/aurelie/to analyse/444118/clean_plane2/';
-path='/Users/platel/Desktop/exp/aurelie/to analyse/444113/444113_221010_plane0/';
-% path='/Volumes/CossartNAS/Aurelie/brainbow analysis/444118/220912_plane0_000/';
-%path='/Users/platel/Desktop/dossier sans titre/';
+% path='/Users/platel/Desktop/exp/aurelie/to analyse/444113/444113_221010_plane0/';
+path='/Volumes/CossartNAS/Aurelie/brainbow analysis/444118/220912_plane0_000/';
 % name='P2M_444113_221010_plane0_2023_03_06.12-20-10.nwb';
-% name='P2M_444118_220912_000_plane0_2023_05_02.15-59-39.nwb';
-name='test';
+name='P2M_444118_220912_000_plane0_2023_05_02.15-59-39.nwb';
 
 %smooth image before ???
 blue=imread([path,'blue.tif']);
@@ -36,8 +34,8 @@ se = strel('disk', radius);
 
 % Perform the rolling ball background subtraction
 greenSubtractedImage = imtophat(green, se);
-redSubtractedImage = imtophat(red1040, se);
-blueSubtractedImage = imtophat(blue, se);
+redSubtractedImage = imtophat(green, se);
+blueSubtractedImage = imtophat(green, se);
 %% 
 
 
