@@ -44,7 +44,7 @@ blue = imtophat(blue, se);
 %registration images
 % %red 1040 aligned to calcium 920
 % 
-reg_obj = imregcorr(red1040, calcium);
+reg_obj = imregcorr(green, calcium);
 T = reg_obj.T;
 aligned_red1040 = imwarp(red1040, affine2d(T), 'OutputView', imref2d(size(red1040)));
 imwrite(aligned_red1040, ([path,'aligned_red.tif']), 'tif');
