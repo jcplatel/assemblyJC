@@ -22,7 +22,8 @@ M(isnan(M)) = 0;
 %% k-means
 
 parfor k = 1:N
-    IDX = kmeans(M,NCl);
+    IDX = kmeans(M,NCl,"Replicates",100); %modified on 2023-10-22
+    % IDX = kmeans(M,NCl)
     s = silh(M,IDX);
     IDX0(k,:) = IDX;
     S(k) = median(s);

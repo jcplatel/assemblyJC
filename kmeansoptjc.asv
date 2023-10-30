@@ -3,9 +3,6 @@ function [IDXs,sCl,M,S] = kmeansopt(E,N,type)
 %E p parameters (cells) by N Events
 %N number of trials per cluster number
 %p p-value for cluster validation
-%IDXs
-%
-
 
 Ne = size(E,2);
 
@@ -16,48 +13,47 @@ end
 
 %% k-means loop
 %
-rng("default")
+% tic
 % parfor k = 1:N*18
 %     NCl = floor((k-1)/N) + 2;
 % %     IDX = kmeans(E',NCl)'; %Normal K-means on distance metric
-%     IDX = kmeans(M,NCl); %Kmeans on distance of covariance metric
+%     IDX = kmeans(M,NCl);    % Kmeans on distance of covariance metric
 %     s = silh(M,IDX);
 %     IDX0(k,:) = IDX;
 %     S(k) = mean(s);
 % end
-
-stream = RandStream('mlfg6331_64');  
-% Random number stream 
-options = statset('UseParallel',1,'UseSubstreams',1,  'Streams',stream);
-for k = 2:20
-    %NCl = floor((k-1)/N) + 2;
-%     IDX = kmeans(E',NCl)'; %Normal K-means on distance metric
-    IDX = kmeans(M,k,'Options',options,'Replicates',1000); %Kmeans on distance of covariance metric %'Options',statset('UseParallel',1)
-    s = silh(M,IDX);
+% toc
+tic
+parfor k = 2:20
+    IDX = kmeans(M,k,'Replicates',N); 
+    s=silhouette(M,IDX)
     IDX0(k,:) = IDX;
-    S(k) = mean(s);
+     S(k) = mean(s);
 end
 toc
 
 %Best clustering for each cluster number
+
 % IDX1 = zeros(18,Ne);
-% for i = 2:20
-%     [~,idx] =max(S(i));
-%     %tmp = IDX0((i-1)*N+(1:N),:);
+% for i = 1:18
+%     tmp = IDX0((i-1)*N+(1:N),:);
 %     [~,idx] = max(S((i-1)*N+(1:N)));
 %     IDX1(i,:) = tmp(idx,:);
 % end
 
 %% keep best silhouette
- [~,NCl] = max(S);
-% NCl = floor((ClOK-1)/N) + 2;
- IDX = IDX0(NCl,:);
- s = silh(M,IDX);
- sCl = zeros(1,NCl);
- for i = 1:NCl
-     sCl(i) = median(s(IDX==i));
- end
 
+% [~,ClOK] = max(S);
+% NCl = floor((ClOK-1)/N) + 2;
+NCl = max(S);
+IDX = IDX0(ClOK,:);
+s = silh(M,IDX);
+sCl = zeros(1,NCl);
+for i = 1:NCl
+    sCl(i) = median(s(IDX==i));
+end
+
+%sort RACE/silhouette of best cluster
 [sCl,xCl] = sort(sCl,'descend');
 IDXs = zeros(1,Ne);
 for i = 1:NCl

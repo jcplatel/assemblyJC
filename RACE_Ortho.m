@@ -8,7 +8,7 @@
 
 [NCell,NRace] = size(Race);
 NCl = NClOK;
-NShuf = 5000;
+NShuf = 1000;
 Nt = 14000; % For multiple movies
 
 %% Statistiscal definition of cell assemblies
@@ -21,7 +21,7 @@ for i = 1:NCl
     CellR(:,i) = CellP(:,i)/sum(IDX2 == i);    %divided per nb of cell in this cluster
 end
 
-%Test for statistical significance
+%Test for statistical significance (for highly active cell ?)
 CellCl = zeros(NCl,NCell); %Binary matrix of cell associated to clusters
 for j = 1:NCell
     %Random distribution among Clusters
@@ -50,6 +50,7 @@ A0 = find(sum(CellCl) == 0); %Cells not in any cluster
 A1 = find(sum(CellCl) == 1); %Cells in one cluster
 A2 = find(sum(CellCl) >= 2); %Cells in several clusters
 %maybe export CellCl from here before ortho  
+CellClraw=CellCl;
 %Keep cluster where they participate the most
 for i = A2
     [~,idx] = max(CellR(i,:));

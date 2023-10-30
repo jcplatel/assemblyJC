@@ -13,24 +13,24 @@ end
 
 %% k-means loop
 %
-% tic
+tic
 parfor k = 1:N*18
     NCl = floor((k-1)/N) + 2;
 %     IDX = kmeans(E',NCl)'; %Normal K-means on distance metric
-    IDX = kmeans(M,NCl);%,'distance','cityblock');    % Kmeans on distance of covariance metric
+    IDX = kmeans(M,NCl);    % Kmeans on distance of covariance metric
     s = silh(M,IDX);
     IDX0(k,:) = IDX;
     S(k) = mean(s);
 end
-% toc
-% tic
-% parfor k = 2:20
-%     IDX = kmeans(M,k,'Replicates',N); 
-%     s=silhouette(M,IDX)
-%     IDX0(k,:) = IDX;
-%      S(k) = mean(s);
-% end
-% toc
+toc
+tic
+parfor k = 2:20
+    IDXtest = kmeans(M,k,'Replicates',N); 
+    s=silhouette(M,IDX)
+    IDX0(k,:) = IDXtest;
+     S(k) = mean(s);
+end
+toc
 % 
 % stream = RandStream('mlfg6331_64');  
 % % Random number stream 

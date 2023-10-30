@@ -5,8 +5,8 @@ tic
 MinPeakDistancesce=3 ;%was at  5 ?
 MinPeakDistance=3;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
-kmean_iter=100;
-kmeans_surrogate=1000; 
+kmean_iter=1000;
+kmeans_surrogate=500; 
 %synchronous_frames=2;
 
 % PathSave='/Users/platel/Desktop/exp/analysis/';
@@ -252,7 +252,6 @@ sClrnd = zeros(1,kmeans_surrogate);
 parfor i = 1:kmeans_surrogate  
     sClrnd(i) = kmeansoptrnd(Race,10,NCl); 
 end
-
 %NClOK = sum(sCl>max(sClrnd));
 NClOK =sum(sCl>prctile(sClrnd,95));
 sClOK = sCl(1:NClOK)';
