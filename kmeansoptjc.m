@@ -26,7 +26,8 @@ end
 tic
 parfor k = 2:20
     IDX = kmeans(M,k,'Replicates',N); 
-    s=silhouette(M,IDX)
+    % s=silhouette(M,IDX)
+    s = silh(M,IDX);
     IDX0(k,:) = IDX;
      S(k) = mean(s);
 end

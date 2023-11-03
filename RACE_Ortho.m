@@ -155,9 +155,9 @@ RList = [Cl0 Cl1 Cl2 Cl3 Cl4];
 %Race2d = Race;
 %Race2d(:, Mov2:end) = Race(:,Mov2:end)/2;
 
-figure
-% f = figure('visible','off');f
-imagesc(Race(x1,RList))
+% figure
+% % f = figure('visible','off');f
+% imagesc(Race(x1,RList))
 
 %Show with replay
 % load('TestRACESeq')
@@ -169,7 +169,7 @@ imagesc(Race(x1,RList))
 % RaceBwdReplay(:,p<0.05 & r<0) = Race(:,p<0.05 & r<0);
 % imagesc(Race(x1,RList) - RaceReplay(x1,RList)/2)
 % imagesc(Race(x1,RList) - RaceFwdReplay(x1,RList)/3 - 2*RaceBwdReplay(x1,RList)/3)
-colormap hot
-axis tight
-exportgraphics(gcf,[namefull 'cell_assemblies.png'],'Resolution',300)
+% colormap hot
+% axis tight
+% exportgraphics(gcf,[namefull 'cell_assemblies.png'],'Resolution',300)
 

@@ -6,7 +6,7 @@ MinPeakDistancesce=3 ;%was at  5 ?
 MinPeakDistance=3;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
 kmean_iter=1000;
-kmeans_surrogate=500; 
+kmeans_surrogate=1000; 
 %synchronous_frames=2;
 
 % PathSave='/Users/platel/Desktop/exp/analysis/';
@@ -33,7 +33,7 @@ disp('median normalization')
 traces=Tr1b;
 for k = 1:NCell
     Tr1b(k, :) = detrend(Tr1b(k,:),'Continuous',false);
- end
+end
 disp('bleaching correction')
 
 % Savitzky-Golay filter
@@ -123,8 +123,7 @@ percentile = 99; % Calculate the 5% highest point or 99
 % 
 % disp(['sce_n_cells_threshold: ' num2str(sce_n_cells_threshold)])
 sce_n_cells_threshold = 10;
-%sce_n_cells_threshold =median(Sumactsh,'all');
-% sce_n_cells_threshold =3*iqr(Sumactsh,'all');    
+
 
 % Select synchronies (RACE)         % TRace=localisation SCE 
 
@@ -203,6 +202,7 @@ for i = 1:NCl
 end
 %Assign cells to cluster with which it most likely spikes in term of
 %percentage
+
 [~,CellCl] = max(CellScoreN,[],2);
 %Remove cells with less than 2 spikes in a given cluster   ###should
 %export this raw CellCl  
@@ -217,8 +217,6 @@ for i = 1:NCl
     k = k+1;
     assemblyraw{k} = transpose(find(CellCl==i));
 end
-
-% save([namefull,'assemblyraw.mat'],'assemblyraw')  
 
 % figure
  f = figure('visible','off');
@@ -236,6 +234,7 @@ xlabel('sorted SCE #')     %was RACE
 ylabel('sorted Cell #')
 
 exportgraphics(gcf,[namefull 'clusters.png'],'Resolution',300)
+close gcf
 
 %% Save Clusters
  %save([namefull,'Clusters.mat'],'IDX2')   % liste de tous les SCE et dans quel cluster ils sont
@@ -245,13 +244,13 @@ exportgraphics(gcf,[namefull 'clusters.png'],'Resolution',300)
 % of one cluster is higher than real data then remove this cluster.
 % since they are sorted remove the worst one 
 
-
 % kmeans_surrogate=500; %or more...
 sClrnd = zeros(1,kmeans_surrogate);
 
 parfor i = 1:kmeans_surrogate  
-    sClrnd(i) = kmeansoptrnd(Race,10,NCl); 
+    sClrnd(i) = kmeansoptrndjc(Race,100,NCl); 
 end
+
 %NClOK = sum(sCl>max(sClrnd));
 NClOK =sum(sCl>prctile(sClrnd,95));
 sClOK = sCl(1:NClOK)';
@@ -266,20 +265,13 @@ for i = 1:NClOK
     assemblystat{k} = transpose(find(CellCl==i));
 end
 
-% save([namefull,'assemblystat.mat'],'assemblystat')
-% save([namefull,'NClustersOK.mat'],'NClOK')
-
 RaceOK = Race(:,IDX2<=NClOK);
 NRaceOK = size(RaceOK,2);
 disp(['nSCEOK: ' num2str(NRaceOK)])    
 
-% we should plot Race OK before othogonalisation
-%%%%
-%
-%pause (1)
-
 if NClOK>1
      RACE_Ortho
+     %%call rasterplot here
 else
     NCl=NClOK;
      assemblyortho= cell(0);
@@ -288,20 +280,9 @@ else
 end
 
 ncluster(sce_n_cells_threshold)=NCl;
-% test=strcat ('percentile sce threshold=', num2str(percentile), ' sce_n_cells_threshold=', num2str( sce_n_cells_threshold), ' ncluster= ' , num2str(NCl) , (  ' NRace= ') , num2str(NRace), (  ' NRaceOK= ') ,  num2str(NRaceOK) ) ;
-%disp(strcat ('synchronous_frames= ', num2str(synchronous_frames),  ' minpeak distactivity', num2str(MinPeakDistance ),  ' ncluster= ' , num2str(NCl) , (  ' NRace= ') , num2str(NRace), (  ' NRaceOK= ') ,  num2str(NRaceOK) )) 
-% disp(daytime)
-% disp(test)
 
-%open file identifier
-
- % fid=fopen([namefull,'settings.txt'],'w');
- % fprintf(fid, test);
- % fclose(fid);
-
-%brainbowassemblies2023_06_09
 %write all data in excel
 
-exportdata
-save([namefull,'results.mat'])  
+% exportdata
+% save([namefull,'results.mat'])  
 toc
