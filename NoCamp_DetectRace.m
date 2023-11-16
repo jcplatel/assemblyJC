@@ -1,7 +1,7 @@
-clear
-close all
-
-openingnwb
+% 
+% clear
+% close all
+tic
 %% Load current data
 
 % load('WinRest')  %period of rest
@@ -9,14 +9,19 @@ openingnwb
 % load('Cells')       %movie
 % load('MovT')        % times of ????   images ???
 % load('Speed')      % instantaneous speed
-imaging_sampling_rate=8;
+imaging_sampling_rate=10;
+kmeans_surrogate=1000; 
+MinPeakDistancesce=5 ;%was at  5 ?
+MinPeakDistance=[];
+percentile=[];
+minithreshold=[];
 synchronous_frames=round(0.2*imaging_sampling_rate,0); %200ms *sampling rate
-PathSave='/Users/platel/Desktop/exp/analysis/';
-
- daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
- namefull=[PathSave daytime name '/'];
- mkdir (namefull)    % make folder for saving analysis
-disp(['make new folder ' namefull])
+% PathSave='/Users/platel/Desktop/exp/analysis/';
+% 
+%  daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
+%  namefull=[PathSave daytime name '/'];
+%  mkdir (namefull)    % make folder for saving analysis
+% disp(['make new folder ' namefull])
 
 
  %Tr1b=double(plane0(iscell(:,1)>0,:));
@@ -30,6 +35,8 @@ disp(['make new folder ' namefull])
 % allcells=readNPY('/Users/platel/Desktop/exp/aurelie/suite2p_444175_221125_plane1/F.npy');
 % iscell=readNPY('/Users/platel/Desktop/exp/aurelie/suite2p_444175_221125_plane1/iscell.npy');
 % Tr1b=double(allcells(iscell(:,1)>0,:));
+Tr1b=F;
+[NCell,Nz] = size(Tr1b);
 Tr1b=Tr1b./median(Tr1b,2);
 
 %bleaching correction
@@ -38,15 +45,15 @@ Tr1b=Tr1b./median(Tr1b,2);
 for k = 1:NCell
     Tr1b(k, :) = detrend(Tr1b(k,:),'Continuous',false);
 end
-
+speed =smoothdata(speed,'gaussian',50);
 %Tr1b=readNPY('/Users/platel/Desktop/exp/sce.npy');
 WinRest=find(speed<1);
 
 %% Detect small calcium transients
 [NCell,Nz] = size(Tr1b);
 
-sce_n_cells_threshold=round(0.05*NCell);
-
+% sce_n_cells_threshold=round(0.05*NCell);
+sce_n_cells_threshold=10;
 
 % Savitzky-Golay filter
 Tr1b = sgolayfilt(Tr1b',3,5)';
@@ -58,8 +65,8 @@ Tr1b = sgolayfilt(Tr1b',3,5)';
 % end
 
 % Detect Calcium Transients using a sliding window
-%TrRest = Tr1b(:,WinRest);
-TrRest = Tr1b;
+TrRest = Tr1b(:,WinRest);
+% TrRest = Tr1b;
 Raster = zeros(NCell,Nz);
 %WinSize = 40;
 WinSize = round(4 * imaging_sampling_rate);
@@ -76,7 +83,7 @@ parfor i=1:NCell
             Mediantmp = median(Trtmp(Wintmp));
             %Not active in 10 last frames and not within burst activity
             if sum(Acttmp(j-10:j-1)) == 0 && Mediantmp < ThBurst 
-                Acttmp(j) = Trtmp(j) - Mediantmp > 3*iqr(Trtmp(Wintmp));
+                Acttmp(j) = Trtmp(j) - Mediantmp > 2*iqr(Trtmp(Wintmp));
                 Sigtmp(j) = (Trtmp(j) - Mediantmp) / iqr(Trtmp(Wintmp));
             end
         end
@@ -99,7 +106,7 @@ end
 
 % Select synchronies (RACE)
 %Th = 5;
-[pks,TRace] = findpeaks(MAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',5);
+[pks,TRace] = findpeaks(MAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',MinPeakDistancesce);
 
 NRace = length(TRace);
 
@@ -121,16 +128,16 @@ end
 % %% Save
 % save([PathSave,'Acttmp2.mat'],'Acttmp2')
 % save([PathSave,'Race.mat'],'Race')
-save([namefull,'TRace.mat'],'TRace')   
+% save([namefull,'TRace.mat'],'TRace')   
 % 
 % 
 
 %% Clustering
 [NCell,NRace] = size(Race);
-[IDX2,sCl,M,S] = kmeansopt(Race,200,'var');
+[IDX2,sCl,M,S] = kmeansopt(Race,1000,'var');
 % M = CovarM(Race);
 % IDX2 = kmedoids(M,NCl);
-NCl = max(IDX2);
+NCl = max(IDX2)
 
 [~,x2] = sort(IDX2);
 MSort = M(x2,x2);
@@ -150,6 +157,13 @@ end
 CellCl(max(CellScore,[],2)<2) = 0;
 [X1,x1] = sort(CellCl);
 
+assemblyraw= cell(0);
+k = 0;
+for i = 1:NCl
+    k = k+1;
+    assemblyraw{k} = transpose(find(CellCl==i));
+end
+
 figure
 subplot(1,2,1)
 imagesc(MSort)
@@ -163,7 +177,7 @@ imagesc(Race(x1,x2),[-1 1.2])
 axis image
 xlabel('RACE #')
 ylabel('Cell #')
-exportgraphics(gcf,[name 'clusters.png'],'Resolution',300)
+% exportgraphics(gcf,[name 'clusters.png'],'Resolution',300)
 
 %% Save Clusters
 % save([PathSave,'Clusters.mat'],'IDX2')
@@ -172,14 +186,22 @@ exportgraphics(gcf,[name 'clusters.png'],'Resolution',300)
 %% Remove cluster non-statistically significant
 
 sClrnd = zeros(1,20);
-for i = 1:100
-    sClrnd(i) = kmeansoptrnd(Race,10,NCl);  %was at 10
+for i = 1:kmeans_surrogate
+    sClrnd(i) = kmeansoptrnd(Race,100,NCl);  %was at 10
 end
 %NClOK = sum(sCl>max(sClrnd));
-NClOK =sum(sCl>prctile(sClrnd,95));
+NClOK =sum(sCl>prctile(sClrnd,95))
 sClOK = sCl(1:NClOK)';
 % 
 % save([PathSave,'NClustersOK.mat'],'NClOK')
+assemblystat= cell(0);
+k = 0;
+for i = 1:NClOK
+    k = k+1;
+    assemblystat{k} = transpose(find(CellCl==i));
+end
+
+
 
 RaceOK = Race(:,IDX2<=NClOK);
 NRaceOK = size(RaceOK,2);
@@ -192,13 +214,14 @@ ncluster(sce_n_cells_threshold)=NCl
 nracemax(sce_n_cells_threshold)=NRaceOK
 test=strcat ('MinPeakDistancesce= ', num2str(5), ' sce_n_cells_threshold=', num2str( sce_n_cells_threshold), ' synchronous_frames = ', num2str(synchronous_frames),    ' ncluster= ' , num2str(NCl) , (  ' NRace= ') , num2str(NRace), (  ' NRaceOK= ') ,  num2str(NRaceOK) ) ;
 %disp(strcat ('synchronous_frames= ', num2str(synchronous_frames),  ' minpeak distactivity', num2str(MinPeakDistance ),  ' ncluster= ' , num2str(NCl) , (  ' NRace= ') , num2str(NRace), (  ' NRaceOK= ') ,  num2str(NRaceOK) )) 
-disp(test)
+% disp(test)
 %save([PathSave,'NClustersOK.mat'],'NClOK')
 
 %fileName={'new1.txt', 'new2.txt', 'new3.txt'};
 %open file identifier
- fid=fopen([name,'settings.txt'],'w');
- fprintf(fid, test);
- fclose(fid);
+ % fid=fopen([name,'settings.txt'],'w');
+ % fprintf(fid, test);
+ % fclose(fid);
 
 
+toc

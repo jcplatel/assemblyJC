@@ -12,12 +12,11 @@ if strcmp(type,'var')
 end
 
 %% k-means loop
-%
-% tic
+
 parfor k = 1:N*18
     NCl = floor((k-1)/N) + 2;
 %     IDX = kmeans(E',NCl)'; %Normal K-means on distance metric
-    IDX = kmeans(M,NCl);%,'distance','cityblock');    % Kmeans on distance of covariance metric
+    IDX = kmeans(M,NCl,"MaxIter",200);%,'distance','cityblock');    % Kmeans on distance of covariance metric
     s = silh(M,IDX);
     IDX0(k,:) = IDX;
     S(k) = mean(s);
@@ -50,13 +49,13 @@ end
 IDX1 = zeros(18,Ne);
 for i = 1:18
     tmp = IDX0((i-1)*N+(1:N),:);
-    [~,idx] = max(S((i-1)*N+(1:N)));
+    [~,idx] = max(S((i-1)*N+(1:N))); % maybe 95% should be better
     IDX1(i,:) = tmp(idx,:);
 end
 
-%% keep best silhouette
+%% keep best silhouette  %%%seem redundant...
 
-[~,ClOK] = max(S);
+[~,ClOK] = max(S); % maybe 95% should be better  
 NCl = floor((ClOK-1)/N) + 2;
 IDX = IDX0(ClOK,:);
 s = silh(M,IDX);
@@ -71,3 +70,4 @@ IDXs = zeros(1,Ne);
 for i = 1:NCl
     IDXs = IDXs + (IDX == xCl(i))*i;
 end
+

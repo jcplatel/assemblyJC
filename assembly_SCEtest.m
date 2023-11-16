@@ -2,7 +2,7 @@
 tic
 
 %% Load settings
-MinPeakDistancesce=3 ;%was at  5 ?
+MinPeakDistancesce=5 ;%was at  5 ?
 MinPeakDistance=3;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
 kmean_iter=1000;
@@ -183,10 +183,45 @@ end
 %M=covariance matrix  S= Silhouette but of all clustering X10 times
 %sCl=median des silhouettes des clusters du meilleur clustering
 %IDX2=which SCE to which cluster
-[IDX2,sCl,M,S] = kmeansopt(Race,kmean_iter,'var');%increase to 50,  100 ?    
+[IDX0,sCl,M,S] = kmeansopttest(Race,kmean_iter,'var');%increase to 50,  100 ?    
 % M = CovarM(Race);
 % IDX2 = kmedoids(M,NCl);
-NCl = max(IDX2);
+
+for n = 1:100 %kmeans_surrogate  
+    
+    [Np,Ne] = size(M);
+
+    %% Randomization
+    ERnd = zeros(Np,Ne);
+    for i = 1:Ne
+        ERnd(:,i) = M(randperm(Np),i);
+    end
+
+    %% Covariace matrix
+    Msh = zeros(Ne,Ne);
+    parfor i = 1:Ne
+        for j = 1:Ne
+            Msh(i,j) = covnorm(ERnd(:,i),ERnd(:,j),0);
+        end
+    end
+    Msh(isnan(Msh)) = 0;
+    [IDX0sh,sClsh,Msh1,Ssh] = kmeansopttest(Msh,100,'var');
+    Sil(n,:)=Ssh;
+
+end
+Ssh=prctile(Sil,95,1);
+
+for i=2:20
+    Gap(i) = S(i) - Ssh(i);
+end
+[best ,bestidx]=max(Gap)
+
+% parfor i = 1:kmeans_surrogate  
+%     sClrnd(i) = kmeansoptrndtest(Race,100,NCl); 
+% end
+IDX2=IDX0(13,:);
+% NCl = max(IDX2);
+NCl=13;
 [~,x2] = sort(IDX2);
 MSort = M(x2,x2);
 disp(['nClusters: '  num2str(NCl)])
@@ -245,14 +280,15 @@ close gcf
 % since they are sorted remove the worst one 
 
 % kmeans_surrogate=500; %or more...
-sClrnd = zeros(1,kmeans_surrogate);
-
-parfor i = 1:kmeans_surrogate  
-    sClrnd(i) = kmeansoptrndjc(Race,100,NCl); 
-end
+% sClrnd = zeros(1,kmeans_surrogate);
+% 
+% parfor i = 1:kmeans_surrogate  
+%     sClrnd(i) = kmeansoptrndjc(Race,100,NCl); 
+% end
 
 %NClOK = sum(sCl>max(sClrnd));
-NClOK =sum(sCl>prctile(sClrnd,95));
+% NClOK =sum(sCl>prctile(sClrnd,95));
+NClOK=NCl;
 sClOK = sCl(1:NClOK)';
 disp(['nClustersOK: ' num2str(NClOK)])
 

@@ -8,7 +8,7 @@ for i = 1:Ne
     ERnd(:,i) = E(randperm(Np),i);
 end
 
-%% Covariance matrix
+%% Covariace matrix
 M = zeros(Ne,Ne);
 parfor i = 1:Ne
     for j = 1:Ne
@@ -33,10 +33,10 @@ M(isnan(M)) = 0;
 options = statset('UseParallel',1);
 
 IDX = kmeans(M,NCl,'Options',options,'Replicates',1000);
-% sil = silhouette(M,IDX);
-s = silh(M,IDX);
+s = silhouette(M,IDX);
+% s = silh(M,IDX);
 % IDX0(k,:) = IDX;
-% S = s;
+S = s;
 
 % keep best silhouette
 % [~,ClOK] = max(S);
@@ -44,7 +44,7 @@ s = silh(M,IDX);
 %s = silh(M,IDX);
 sCl = zeros(1,NCl);
 for i = 1:NCl
-    sCl(i) = median(s(IDX==i));
-    % sCl(i) = mean(s(IDX==i));
+    % sCl(i) = median(s(IDX==i));
+    sCl(i) = mean(s(IDX==i));
 end
 sCl = max(sCl);

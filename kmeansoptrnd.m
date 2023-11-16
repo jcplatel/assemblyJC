@@ -23,7 +23,7 @@ M(isnan(M)) = 0;
 
 for k = 1:N
     % IDX = kmeans(M,NCl,"Replicates",100); %modified on 2023-10-22
-    IDX = kmeans(M,NCl);
+    IDX = kmeans(M,NCl,"MaxIter",200);
     s = silh(M,IDX);
     IDX0(k,:) = IDX;
     S(k) = median(s);

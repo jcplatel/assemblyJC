@@ -55,10 +55,10 @@ set(ax, 'YColor', 'w');
 set(ax, 'Color', 'k');
 xlabel('sorted SCE #')     %was RACE
 ylabel('sorted Cell #')
-
+drawnow
 hold off
 namegraph=strcat(namefull,['raster' , '.png']);
 if isfolder(namefull)
     exportgraphics(gcf,namegraph,'Resolution',300,'BackgroundColor','black')
-    close gcf
+    %close gcf
 end

@@ -2,12 +2,19 @@ clear
 close all
 %path data
 % path='/Users/platel/Desktop/exp/aurelie/to analyse/444118/clean_plane2/';
-path='/Users/platel/Desktop/exp/aurelie/to analyse/444113/444113_221010_plane0/';
+% load('/Users/platel/Desktop/exp/allnwb.mat')
+% filename=cell2mat(nwbFiles (24));
+% [path,name,ext] = fileparts(filename);
+% path =[path '\'];
+% path='/Users/platel/Desktop/exp/aurelie/to analyse/444113/444113_221010_plane0/';
 % path='/Volumes/CossartNAS/Aurelie/brainbow analysis/444118/220912_plane0_000/';
+% path='/Volumes/10.51.106.5/Data/Aurelie/brainbow analysis/444118/220912_plane1_000/';
+path='/Volumes/10.51.106.5/Data/Aurelie/brainbow analysis/444175/221122_plane1/';
+
 %path='/Users/platel/Desktop/dossier sans titre/';
 % name='P2M_444113_221010_plane0_2023_03_06.12-20-10.nwb';
 % name='P2M_444118_220912_000_plane0_2023_05_02.15-59-39.nwb';
-name='test';
+% name='test';
 
 %smooth image before ???
 blue=imread([path,'blue.tif']);
@@ -33,19 +40,31 @@ imwrite(calcium, ([path,'calcium.tif']), 'tif');
 %filter images (background substraction rolling ball): 
 radius = 50;
 se = strel('disk', radius);
-
-% Perform the rolling ball background subtraction
-green = imtophat(green, se);
-red1040 = imtophat(red1040, se);
-blue = imtophat(blue, se);
 %% 
+
+% % Perform the rolling ball background subtraction
+green = imtophat(green, se);
+% green = imadjust(green)/4;
+red1040 = imtophat(red1040, se);
+% red1040 = imadjust(red1040)/2;
+blue = imtophat(blue, se);
+% blue =  imadjust(blue);
+% calcium=imadjust(calcium);
+
 
 
 %registration images
 % %red 1040 aligned to calcium 920
 % 
-reg_obj = imregcorr(red1040, calcium);
+% reg_obj = imregcorr(red1040, calcium);
+%add red1040+green 1040 
+im1040=green+red1040;
+% imALL=green+red1040+blue;
+%% 
+reg_obj = imregcorr(im1040, calcium);
+% reg_obj = imregcorr(green, calcium);
 T = reg_obj.T;
+
 aligned_red1040 = imwarp(red1040, affine2d(T), 'OutputView', imref2d(size(red1040)));
 imwrite(aligned_red1040, ([path,'aligned_red.tif']), 'tif');
 

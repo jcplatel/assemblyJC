@@ -2,11 +2,11 @@
 tic
 
 %% Load settings
-MinPeakDistancesce=3 ;%was at  5 ?
+MinPeakDistancesce=5 ;%was at  5 ?
 MinPeakDistance=3;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
-kmean_iter=1000;
-kmeans_surrogate=1000; 
+kmean_iter=100;
+kmeans_surrogate=100; 
 %synchronous_frames=2;
 
 % PathSave='/Users/platel/Desktop/exp/analysis/';
@@ -68,14 +68,20 @@ minithreshold=0.1;
 
 for i=1:NCell    
     
-    %th(i)=3*iqr(Tr1b(i,:));
+    % th(i)=3*iqr(Tr1b(i,:));
     th(i)=max ([3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ,minithreshold]) ;
+    % th(i)=max ([3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ]) ;
+    % th(i)=0.2;
     % th(i)=max ([3*iqr(Tr1b(i,:)),  minithreshold]) ;
-    % th(i)=3*std(Tr1b(i,:));
+    %th(i)=3*std(Tr1b(i,:));
     [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakProminence',th(i),'MinPeakDistance',MinPeakDistance);
     % [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakHeight',th(i),'MinPeakDistance',MinPeakDistance);
     valeurs_identiques = intersect (locs,WinActive);
-    locs_sans_ide=setdiff(locs(:), valeurs_identiques);
+    % ampALL{i}=amplitude;
+    [locs_sans_ide , idx ]=setdiff(locs(:), valeurs_identiques);
+    ampli_sans_ide=amplitude(idx);
+    % ampALL{i}=ampli_sans_ide;
+    % Acttmp2{i}=locs_sans_ide(ampli_sans_ide>0.05 & ampli_sans_ide<1);
     Acttmp2{i}=locs_sans_ide;%%%%%%%%findchangepts(y,MaxNumChanges=10,Statistic="rms")
     %Acttmp2{i}=locs;
     % ampli{i}=amplitude;
@@ -218,8 +224,8 @@ for i = 1:NCl
     assemblyraw{k} = transpose(find(CellCl==i));
 end
 
-% figure
- f = figure('visible','off');
+figure
+ % f = figure('visible','off');
 subplot(1,2,1)
 imagesc(MSort)
 colormap jet
@@ -247,16 +253,23 @@ close gcf
 % kmeans_surrogate=500; %or more...
 sClrnd = zeros(1,kmeans_surrogate);
 
-parfor i = 1:kmeans_surrogate  
-    sClrnd(i) = kmeansoptrndjc(Race,100,NCl); 
+for i = 1:kmeans_surrogate  
+    sClrnd(i) = kmeansoptrnd(Race,100,NCl); 
 end
 
+% for i = 1:kmeans_surrogate  
+%     f = parfeval(pool, @kmeansoptrnd,1,Race,100,NCl); % Replace your_function with your actual function
+%     sClrnd(i)= fetchOutputs(f);
+
+
 %NClOK = sum(sCl>max(sClrnd));
-NClOK =sum(sCl>prctile(sClrnd,95));
+NClOK =sum(sCl>prctile(sClrnd,95)); %use max, use 99%  ?
 sClOK = sCl(1:NClOK)';
 disp(['nClustersOK: ' num2str(NClOK)])
-
+% save([namefull,'results.mat'])  
+% return
 %new list of cells %JC
+
 
 assemblystat= cell(0);
 k = 0;

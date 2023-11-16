@@ -8,7 +8,7 @@
 
 [NCell,NRace] = size(Race);
 NCl = NClOK;
-NShuf = 1000;
+NShuf = 5000;
 Nt = 14000; % For multiple movies
 
 %% Statistiscal definition of cell assemblies

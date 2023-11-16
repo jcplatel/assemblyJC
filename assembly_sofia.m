@@ -50,7 +50,7 @@ MinPeakDistancesce=3 ;
 %synchronous_frames=2;
 MinPeakDistance=3;
 
-sampling_rate=5;%; already loaded in nwb
+sampling_rate=15;%; already loaded in nwb
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
 
 
@@ -198,7 +198,7 @@ Sumactsh=zeros(Nz-synchronous_frames,NShfl);
 % toc
 % percentile = 99; % Calculate the 5% highest point or 99
 %  sce_n_cells_threshold = prctile(Sumactsh, percentile,"all");
-sce_n_cells_threshold =20;
+sce_n_cells_threshold =10;
 
 toc
 disp(['sce_n_cells_threshold: ' num2str(sce_n_cells_threshold)])

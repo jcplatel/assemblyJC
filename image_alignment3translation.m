@@ -2,10 +2,19 @@ clear
 close all
 %path data
 % path='/Users/platel/Desktop/exp/aurelie/to analyse/444118/clean_plane2/';
+% load('/Users/platel/Desktop/exp/allnwb.mat')
+% filename=cell2mat(nwbFiles (24));
+% [path,name,ext] = fileparts(filename);
+% path =[path '\'];
 % path='/Users/platel/Desktop/exp/aurelie/to analyse/444113/444113_221010_plane0/';
-path='/Volumes/CossartNAS/Aurelie/brainbow analysis/444118/220912_plane0_000/';
+% path='/Volumes/CossartNAS/Aurelie/brainbow analysis/444118/220912_plane0_000/';
+% path='/Volumes/10.51.106.5/Data/Aurelie/brainbow analysis/444118/220912_plane1_000/';
+path='/Volumes/10.51.106.5/Data/Aurelie/brainbow analysis/444175/221121_plane1/';
+
+%path='/Users/platel/Desktop/dossier sans titre/';
 % name='P2M_444113_221010_plane0_2023_03_06.12-20-10.nwb';
-name='P2M_444118_220912_000_plane0_2023_05_02.15-59-39.nwb';
+% name='P2M_444118_220912_000_plane0_2023_05_02.15-59-39.nwb';
+% name='test';
 
 %smooth image before ???
 blue=imread([path,'blue.tif']);
@@ -31,32 +40,59 @@ imwrite(calcium, ([path,'calcium.tif']), 'tif');
 %filter images (background substraction rolling ball): 
 radius = 50;
 se = strel('disk', radius);
-
-% Perform the rolling ball background subtraction
-greenSubtractedImage = imtophat(green, se);
-redSubtractedImage = imtophat(green, se);
-blueSubtractedImage = imtophat(green, se);
 %% 
+
+% % Perform the rolling ball background subtraction
+green = imtophat(green, se);
+% green = imadjust(green)/4;
+red1040 = imtophat(red1040, se);
+% red1040 = imadjust(red1040)/2;
+blue = imtophat(blue, se);
+% blue =  imadjust(blue);
+% calcium=imadjust(calcium);
+
 
 
 %registration images
 % %red 1040 aligned to calcium 920
 % 
-reg_obj = imregcorr(red1040, calcium);
-T = reg_obj.T;
-aligned_red1040 = imwarp(red1040, affine2d(T), 'OutputView', imref2d(size(red1040)));
+% reg_obj = imregcorr(red1040, calcium);
+%add red1040+green 1040 
+im1040=green+red1040;
+% imALL=green+red1040+blue;
+%% 
+% reg_obj = imregcorr(im1040, calcium);
+% 
+% % reg_obj = imregcorr(green, calcium);
+% T = reg_obj.T;
+fixedRefObj = imref2d(size(calcium));
+movingRefObj = imref2d(size(im1040));
+
+
+tform = imregcorr(im1040,movingRefObj,calcium,fixedRefObj,'transformtype','translation','Window',true);
+
+aligned_red1040 = imwarp(red1040, movingRefObj, tform, 'OutputView', fixedRefObj, 'SmoothEdges', true);
+
+
+
+
+% aligned_red1040 = imwarp(red1040, affine2d(T), 'OutputView', imref2d(size(red1040)));
 imwrite(aligned_red1040, ([path,'aligned_red.tif']), 'tif');
 
-aligned_green = imwarp(green, affine2d(T), 'OutputView', imref2d(size(green)));
+aligned_green = imwarp(green, movingRefObj, tform, 'OutputView', fixedRefObj, 'SmoothEdges', true);
+% aligned_green = imwarp(green, affine2d(T), 'OutputView', imref2d(size(green)));
 imwrite(aligned_green, ([path,'aligned_green.tif']), 'tif');
 
 % %red 890 aligned to red1040 and used to align Blue890 
-reg_obj = imregcorr(red890, aligned_red1040);
-T = reg_obj.T;
+% reg_obj = imregcorr(red890, aligned_red1040);
+tform = imregcorr(red890,movingRefObj,aligned_red1040,fixedRefObj,'transformtype','translation','Window',true);
+% T = reg_obj.T;
+
 % aligned_red890 = imwarp(red890, affine2d(T), 'OutputView', imref2d(size(red890)));
 % imwrite(aligned_red890, ([path,'aligned_red890.tif']), 'tif');
 
-aligned_blue = imwarp(blue, affine2d(T), 'OutputView', imref2d(size(blue)));
+% aligned_blue = imwarp(blue, affine2d(T), 'OutputView', imref2d(size(blue)));
+aligned_blue = imwarp(blue, movingRefObj, tform, 'OutputView', fixedRefObj, 'SmoothEdges', true);
 imwrite(aligned_blue, ([path,'aligned_blue.tif']), 'tif');
 
 %create composite image
