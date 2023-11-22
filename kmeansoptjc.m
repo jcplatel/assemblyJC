@@ -23,15 +23,17 @@ end
 %     S(k) = mean(s);
 % end
 % toc
-tic
-parfor k = 2:20
-    IDX = kmeans(M,k,'Replicates',N); 
-    % s=silhouette(M,IDX)
-    s = silh(M,IDX);
+stream = RandStream('mlfg6331_64');  % Random number stream
+options = statset('UseParallel',1,'UseSubstreams',1, 'Streams',stream);
+for k = 2:20
+    [IDX,~,sumD]  = kmeans(M,k,'Replicates',100,'Options',options,"MaxIter",300,'OnlinePhase','on'); 
+    sumDk{k}=sumD;
+    s=silhouette(M,IDX);
     IDX0(k,:) = IDX;
      S(k) = mean(s);
 end
 toc
+
 
 %Best clustering for each cluster number
 
@@ -46,12 +48,13 @@ toc
 
 % [~,ClOK] = max(S);
 % NCl = floor((ClOK-1)/N) + 2;
-NCl = max(S);
+[~ , NCl] = max(S);
 IDX = IDX0(NCl,:);
-s = S(NCl);
+s = silhouette(M,IDX);
 sCl = zeros(1,NCl);
 for i = 1:NCl
     sCl(i) = median(s(IDX==i));
+    % sCl(i) = median(s(IDX==i));
 end
 
 %sort RACE/silhouette of best cluster

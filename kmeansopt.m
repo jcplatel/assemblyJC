@@ -12,25 +12,28 @@ if strcmp(type,'var')
 end
 
 %% k-means loop
-
+% rng("default")
 parfor k = 1:N*18
     NCl = floor((k-1)/N) + 2;
-%     IDX = kmeans(E',NCl)'; %Normal K-means on distance metric
-    IDX = kmeans(M,NCl,"MaxIter",200);%,'distance','cityblock');    % Kmeans on distance of covariance metric
+    % IDX = kmeans(E',NCl)'; %Normal K-means on distance metric
+    IDX = kmeans(M,NCl,"MaxIter",300,'OnlinePhase','on');%,'distance','cityblock');    % Kmeans on distance of covariance metric
     s = silh(M,IDX);
     IDX0(k,:) = IDX;
     S(k) = mean(s);
 end
-% toc
+% stream = RandStream('mlfg6331_64');  % Random number stream
+% options = statset('UseParallel',1,'UseSubstreams',1, 'Streams',stream);
+% % toc
 % tic
-% parfor k = 2:20
-%     IDX = kmeans(M,k,'Replicates',N); 
-%     s=silhouette(M,IDX)
+% for k = 2:20
+%     [IDX,~,sumD]  = kmeans(M,k,'Replicates',100,'Options',options,"MaxIter",300,'OnlinePhase','on','display','final'); 
+%     sumDk{k}=sumD;
+%     s=silhouette(M,IDX);
 %     IDX0(k,:) = IDX;
 %      S(k) = mean(s);
 % end
 % toc
-% 
+% % 
 % stream = RandStream('mlfg6331_64');  
 % % Random number stream 
 % options = statset('UseParallel',1,'UseSubstreams',1,  'Streams',stream);
@@ -46,16 +49,17 @@ end
 
 %Best clustering for each cluster number
 
-IDX1 = zeros(18,Ne);
-for i = 1:18
-    tmp = IDX0((i-1)*N+(1:N),:);
-    [~,idx] = max(S((i-1)*N+(1:N))); % maybe 95% should be better
-    IDX1(i,:) = tmp(idx,:);
-end
+% IDX1 = zeros(18,Ne);  %removed 2023-11-19
+% for i = 1:18
+%     tmp = IDX0((i-1)*N+(1:N),:);
+%     [~,idx] = max(S((i-1)*N+(1:N))); % maybe 95% should be better
+%     IDX1(i,:) = tmp(idx,:);
+% end
 
 %% keep best silhouette  %%%seem redundant...
 
 [~,ClOK] = max(S); % maybe 95% should be better  
+% test = prctile(S,95); 
 NCl = floor((ClOK-1)/N) + 2;
 IDX = IDX0(ClOK,:);
 s = silh(M,IDX);

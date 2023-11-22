@@ -10,12 +10,14 @@ tic
 % load('MovT')        % times of ????   images ???
 % load('Speed')      % instantaneous speed
 imaging_sampling_rate=10;
+kmean_iter=1000;
 kmeans_surrogate=1000; 
 MinPeakDistancesce=5 ;%was at  5 ?
 MinPeakDistance=[];
 percentile=[];
 minithreshold=[];
 synchronous_frames=round(0.2*imaging_sampling_rate,0); %200ms *sampling rate
+% Tr1b=double(F(iscell(:,1)>0,:));
 % PathSave='/Users/platel/Desktop/exp/analysis/';
 % 
 %  daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
@@ -39,12 +41,20 @@ Tr1b=F;
 [NCell,Nz] = size(Tr1b);
 Tr1b=Tr1b./median(Tr1b,2);
 
-%bleaching correction
+
+% Tr1b=zeros(NCell,Nz);
+% ws = warning('off','all');
+% for i=1:NCell
+%     p0=polyfit(1:Nz,Tr1(i,:),3);
+%     Tr1b(i,:)=Tr1(i,:)./polyval(p0,1:Nz);
+% end
+% warning(ws)
+% %bleaching correction
 
 %traces=Tr1b;
-for k = 1:NCell
-    Tr1b(k, :) = detrend(Tr1b(k,:),'Continuous',false);
-end
+% for k = 1:NCell
+%     Tr1b(k, :) = detrend(Tr1b(k,:),'Continuous',false);
+% end
 speed =smoothdata(speed,'gaussian',50);
 %Tr1b=readNPY('/Users/platel/Desktop/exp/sce.npy');
 WinRest=find(speed<1);
@@ -83,7 +93,7 @@ parfor i=1:NCell
             Mediantmp = median(Trtmp(Wintmp));
             %Not active in 10 last frames and not within burst activity
             if sum(Acttmp(j-10:j-1)) == 0 && Mediantmp < ThBurst 
-                Acttmp(j) = Trtmp(j) - Mediantmp > 2*iqr(Trtmp(Wintmp));
+                Acttmp(j) = Trtmp(j) - Mediantmp > 3*iqr(Trtmp(Wintmp));
                 Sigtmp(j) = (Trtmp(j) - Mediantmp) / iqr(Trtmp(Wintmp));
             end
         end
@@ -108,7 +118,7 @@ end
 %Th = 5;
 [pks,TRace] = findpeaks(MAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',MinPeakDistancesce);
 
-NRace = length(TRace);
+NRace = length(TRace)
 
 % Create RasterPlots
 Race = zeros(NCell,NRace);
@@ -134,7 +144,7 @@ end
 
 %% Clustering
 [NCell,NRace] = size(Race);
-[IDX2,sCl,M,S] = kmeansopt(Race,1000,'var');
+[IDX2,sCl,M,S] = kmeansopt(Race,100,'var');
 % M = CovarM(Race);
 % IDX2 = kmedoids(M,NCl);
 NCl = max(IDX2)
@@ -201,8 +211,6 @@ for i = 1:NClOK
     assemblystat{k} = transpose(find(CellCl==i));
 end
 
-
-
 RaceOK = Race(:,IDX2<=NClOK);
 NRaceOK = size(RaceOK,2);
 if NClOK>1
@@ -212,7 +220,7 @@ toc
 pause(1)
 ncluster(sce_n_cells_threshold)=NCl
 nracemax(sce_n_cells_threshold)=NRaceOK
-test=strcat ('MinPeakDistancesce= ', num2str(5), ' sce_n_cells_threshold=', num2str( sce_n_cells_threshold), ' synchronous_frames = ', num2str(synchronous_frames),    ' ncluster= ' , num2str(NCl) , (  ' NRace= ') , num2str(NRace), (  ' NRaceOK= ') ,  num2str(NRaceOK) ) ;
+% test=strcat ('MinPeakDistancesce= ', num2str(5), ' sce_n_cells_threshold=', num2str( sce_n_cells_threshold), ' synchronous_frames = ', num2str(synchronous_frames),    ' ncluster= ' , num2str(NCl) , (  ' NRace= ') , num2str(NRace), (  ' NRaceOK= ') ,  num2str(NRaceOK) ) ;
 %disp(strcat ('synchronous_frames= ', num2str(synchronous_frames),  ' minpeak distactivity', num2str(MinPeakDistance ),  ' ncluster= ' , num2str(NCl) , (  ' NRace= ') , num2str(NRace), (  ' NRaceOK= ') ,  num2str(NRaceOK) )) 
 % disp(test)
 %save([PathSave,'NClustersOK.mat'],'NClOK')

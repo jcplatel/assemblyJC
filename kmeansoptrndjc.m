@@ -27,14 +27,15 @@ M(isnan(M)) = 0;
 %     S(k) = median(s);
 % end
 
-% stream = RandStream('mlfg6331_64');  
-% % Random number stream 
-% options = statset('UseParallel',1,'UseSubstreams',1,  'Streams',stream);
-options = statset('UseParallel',1);
+stream = RandStream('mlfg6331_64');  
+options = statset('UseParallel',1,'UseSubstreams',1,  'Streams',stream);
 
-IDX = kmeans(M,NCl,'Options',options,'Replicates',1000);
-% sil = silhouette(M,IDX);
-s = silh(M,IDX);
+
+% IDX = kmeans(M,NCl,'Options',options,'Replicates',1000);
+IDX = kmeans(M,NCl,options,"MaxIter",300,'OnlinePhase','on','Replicates',100);  %'OnlinePhase','on', 'TolFun', 1e-4=default
+   
+s= silhouette(M,IDX);
+% s = silh(M,IDX);
 % IDX0(k,:) = IDX;
 % S = s;
 

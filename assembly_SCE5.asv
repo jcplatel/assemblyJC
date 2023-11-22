@@ -5,7 +5,7 @@ sampling_rate=10;
 MinPeakDistancesce=5 ;%was at  5 ?
 MinPeakDistance=3;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
-kmean_iter=1000;
+kmean_iter=100;
 kmeans_surrogate=100; 
 % load ([path 'colorcellnew.mat'])
 % colorcell=colorcell(1:361);

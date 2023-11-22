@@ -27,6 +27,7 @@ tic
 parfor k = 2:20
     IDX = kmeans(M,k,'Replicates',N); 
     s=silhouette(M,IDX)
+    % s = silh(M,IDX);
     IDX0(k,:) = IDX;
      S(k) = mean(s);
 end
@@ -45,9 +46,9 @@ toc
 
 % [~,ClOK] = max(S);
 % NCl = floor((ClOK-1)/N) + 2;
-NCl = max(S);
-IDX = IDX0(ClOK,:);
-s = silh(M,IDX);
+[a , NCl] = max(S);
+IDX = IDX0(NCl,:);
+s = S(NCl);
 sCl = zeros(1,NCl);
 for i = 1:NCl
     sCl(i) = median(s(IDX==i));

@@ -20,17 +20,24 @@ M(isnan(M)) = 0;
 
 
 %% k-means
-% stream = RandStream('mlfg6331_64');  % Random number stream
-% options = statset('UseParallel',1,'UseSubstreams',1, 'Streams',stream);
+stream = RandStream('mlfg6331_64');  % Random number stream
+options = statset('UseParallel',1,'UseSubstreams',1,...
+    'Streams',stream,"MaxIter",300,'OnlinePhase','on','display','final');
 
 for k = 1:N
-    IDX = kmeans(M,NCl); %modified on 2023-10-22
-    % IDX = kmeans(M,NCl,options,"MaxIter",300,'OnlinePhase','on','display','final');  %'OnlinePhase','on', 'TolFun', 1e-4=default
+    % IDX = kmeans(M,NCl,"Replicates",100); %modified on 2023-10-22
+    IDX = kmeans(M,NCl,;  %'OnlinePhase','on', 'TolFun', 1e-4=default
     s = silh(M,IDX);
     IDX0(k,:) = IDX;
     S(k) = median(s);
 end
 
+% for k = 1:NCl
+%     IDX = kmeans(M,k,'Replicates',N, 'Display','final','MaxIter',1000);
+%     s = silh(M,IDX);
+%     IDX0(k,:) = IDX;
+%     S(k) = median(s);
+% end
 
 % keep best silhouette of permuted cell/SCE matrix
 [~,ClOK] = max(S);      %max of silhouette median to find best clustering among the repeat
