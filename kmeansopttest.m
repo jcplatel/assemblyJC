@@ -20,7 +20,7 @@ parfor k = 1:N
     IDX = kmeans(M,NCl,"MaxIter",300,'OnlinePhase','on');%,'distance','cityblock');    % Kmeans on distance of covariance metric
     s = silh(M,IDX);
     IDX0(k,:) = IDX;
-    S(k) = mean(s);
+    S(k) = median(s);
 end
 
 
@@ -31,7 +31,8 @@ IDX = IDX0(ClOK,:);
 s = silh(M,IDX);
 sCl = zeros(1,NCl);
 for i = 1:NCl
-    sCl(i) = median(s(IDX==i));
+    % sCl(i) = median(s(IDX==i));
+    sCl(i) = mean(s(IDX==i));
 end
 
 %sort RACE/silhouette of best cluster

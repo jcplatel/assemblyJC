@@ -1,11 +1,11 @@
 
 tic
-sampling_rate=10;
+% sampling_rate=10;
 %% Load settings
 MinPeakDistancesce=5 ;%was at  5 ?
 MinPeakDistance=3;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
-kmean_iter=1000;
+kmean_iter=2000;
 kmeans_surrogate=100; 
 % load ([path 'colorcellnew.mat'])
 % colorcell=colorcell(1:361);
@@ -20,6 +20,7 @@ kmeans_surrogate=100;
 %% Load current data
 
 % Tr1b=double(F(iscell(:,1)>0,:));
+
 Tr1b=F;
 % Tr1b=F(colorcell<7,:);
 
@@ -30,7 +31,7 @@ Tr1b=F;
 
 % median normalize
 Tr1b=Tr1b./median(Tr1b,2);
-disp('median normalization')
+% disp('median normalization')
 
 %bleaching correction
 % traces=Tr1b;
@@ -49,7 +50,7 @@ warning(ws)%% preprocessing
 
 % Savitzky-Golay filter
  Tr1b = sgolayfilt(Tr1b',3,7)';%was at 5
-disp('sgolayfilter')
+% disp('sgolayfilter')
 
 [NCell,Nz] = size(Tr1b);
 
@@ -58,7 +59,7 @@ WinRest=find(speed<=1);
 WinActive=find(speed>1);
 % Tr1b = Tr1b(:,WinRest);
 [NCell,Nz] = size(Tr1b);
-disp (['Ncells= ' num2str(NCell)])
+% disp (['Ncells= ' num2str(NCell)])
 MovT=transpose(1:Nz);  %put real time
 
 %disp (['remove running frame: from ' num2str(length(traces))  ' to '  num2str(Nz)  ])
@@ -80,10 +81,10 @@ minithreshold=0.1;
 for i=1:NCell    
     
     % th(i)=3*iqr(Tr1b(i,:));
-    % th(i)=max ([3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ,minithreshold]) ;
+    th(i)=max ([3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ,minithreshold]) ;
     % th(i)=max ([3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ]) ;
     % th(i)=0.2;
-    th(i)=max ([3*iqr(Tr1b(i,:)),  minithreshold]) ;
+    % th(i)=max ([3*iqr(Tr1b(i,:)),  minithreshold]) ;
     %th(i)=3*std(Tr1b(i,:));
     [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakProminence',th(i),'MinPeakDistance',MinPeakDistance);
     % [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakHeight',th(i),'MinPeakDistance',MinPeakDistance);
@@ -95,7 +96,7 @@ for i=1:NCell
     % Acttmp2{i}=locs_sans_ide(ampli_sans_ide>0.05 & ampli_sans_ide<1);
     Acttmp2{i}=locs_sans_ide;%%%%%%%%findchangepts(y,MaxNumChanges=10,Statistic="rms")
     %Acttmp2{i}=locs;
-    % ampli{i}=amplitude;
+    ampli{i}=amplitude;
 
 end
 
@@ -126,7 +127,7 @@ MAct = zeros(1,Nz-synchronous_frames);          %MAct= Sum active cells
 for i=1:Nz-synchronous_frames
     MAct(i) = sum(max(Raster(:,i:i+synchronous_frames),[],2));
 end
-disp(['Sum transient: ' num2str(sum(MAct))])
+% disp(['Ncells= ' num2str(NCell) ' Sum transient: ' num2str(sum(MAct))])
 
 %%%%shuffling to find threshold for number of cell for sce detection
 MActsh = zeros(1,Nz-synchronous_frames);   
@@ -148,10 +149,12 @@ for n=1:NShfl
     Sumactsh(:,n)=MActsh;
 end
 
-percentile = 99; % Calculate the 5% highest point or 99
+percentile = 95; % Calculate the 5% highest point or 99
 sce_n_cells_threshold = prctile(Sumactsh, percentile,"all");
 % 
 % disp(['sce_n_cells_threshold: ' num2str(sce_n_cells_threshold)])
+if sce_n_cells_threshold>20 ; sce_n_cells_threshold=20; end
+
 % sce_n_cells_threshold = 10;
 
 
@@ -159,7 +162,7 @@ sce_n_cells_threshold = prctile(Sumactsh, percentile,"all");
 
 [pks,TRace] = findpeaks(MAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',MinPeakDistancesce);
 NRace = length(TRace);
-disp(['nSCE: '  num2str(NRace)])
+disp(['Ncells= ' num2str(NCell) ' Sum transient: ' num2str(sum(MAct)) ' nSCE: '  num2str(NRace)])
 
 % Create RasterPlots%%%%%%very weird here increase RACE from n-1 :n+2 
 Race = zeros(NCell,NRace);      %Race=cells that participate in SCE 
@@ -219,7 +222,7 @@ end
 NCl = max(IDX2);
 [~,x2] = sort(IDX2);
 MSort = M(x2,x2);
-disp(['nClusters: '  num2str(NCl)])
+% disp(['nClusters: '  num2str(NCl)])
 
 
 %Race clusters
@@ -249,8 +252,8 @@ for i = 1:NCl
     assemblyraw{k} = transpose(find(CellCl==i));
 end
 
-figure
- % f = figure('visible','off');
+% figure
+f = figure('visible','off');
 subplot(1,2,1)
 imagesc(MSort)
 colormap jet
@@ -279,7 +282,7 @@ close gcf
 sClrnd = zeros(1,kmeans_surrogate);
 
 for i = 1:kmeans_surrogate  
-    sClrnd(i) = kmeansoptrnd(Race,10,NCl); 
+    sClrnd(i) = kmeansoptrnd(Race,100,NCl); 
 end
 
 % for i = 1:kmeans_surrogate  
@@ -290,7 +293,7 @@ end
 %NClOK = sum(sCl>max(sClrnd));
 NClOK =sum(sCl>prctile(sClrnd,95)); %use max, use 99%  ?
 sClOK = sCl(1:NClOK)';
-disp(['nClustersOK: ' num2str(NClOK)])
+% disp(['nClustersOK: ' num2str(NClOK)])
 % save([namefull,'results.mat'])  
 % return
 %new list of cells %JC
@@ -305,7 +308,7 @@ end
 
 RaceOK = Race(:,IDX2<=NClOK);
 NRaceOK = size(RaceOK,2);
-disp(['nSCEOK: ' num2str(NRaceOK)])    
+disp(['nSCEOK: ' num2str(NRaceOK) ' nClustersOK: ' num2str(NClOK)])    
 
 if NClOK>1
      RACE_Ortho

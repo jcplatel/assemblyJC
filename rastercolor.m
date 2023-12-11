@@ -25,7 +25,7 @@ colors = [
 Cl_order = [Cl1 Cl2 Cl3 Cl4];
 Race_ordered=Race(x1,Cl_order);
 
-fig = figure;
+fig = figure('visible','off');
 set(fig, 'Color', 'k'); % Set the figure background color to black
 
 ax = axes('Parent', fig);
@@ -60,5 +60,5 @@ hold off
 namegraph=strcat(namefull,['raster' , '.png']);
 if isfolder(namefull)
     exportgraphics(gcf,namegraph,'Resolution',300,'BackgroundColor','black')
-    %close gcf
+    close gcf
 end
