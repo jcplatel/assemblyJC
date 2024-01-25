@@ -1,61 +1,38 @@
 % clear
 % close all
-%default values
-%MinPeakDistancesce=5 frames= 500ms
-% synchronous_frames=2
-%MinPeakDistance=5 frames= 500ms
-%sce_n_cells_threshold=5 or 5% ???   seem best results between 10 to 15
-%cells  should we simulate ???
 
-
-% clear
-% close all
 % % delete(gcp('nocreate'))
 % parpool ('processes',4)
-%disp(daytime)
-%for kmeans_surrogate=[10 10 100 100 200 200 1000 1000]
+
 tic
-% for path={'/Volumes/Crucial-JC/444112', '/Volumes/Crucial-JC/444118' , '/Volumes/Crucial-JC/444119' , ...
-% %          '/Volumes/Crucial-JC/444120' ,  '/Volumes/Crucial-JC/444124' , '/Volumes/Crucial-JC/444152' , '/Volumes/Crucial-JC/444174' , ...
-% %          '/Volumes/Crucial-JC/444175'} 
-%  path= '/Volumes/Crucial-JC/444174';
-% % cd(cell2mat  (path))
-% cd (path)
-% % 
-%  list_files=dir('*.nwb') ;
-% % 
-% % %for sce_n_cells_threshold=10:20%[5,10,15,20]%5:30%
-% for file_num=1:length(list_files)
-% clearvars -except path  list_files file_num
-% 
-% try
-% filename=list_files(file_num).name;
-% 
-% openingnwb
 
 
 %% Load settings
 % filename= '/Users/platel/Desktop/exp/aurelie/444175_new/P2M_444175_221125_plane1_2023_01_09.09-19-40.nwb';
 % path='/Users/platel/Desktop/exp/';
-% name='testsofia';
+% load('/Users/platel/Desktop/exp/Sofia/ani66/Fall.mat')
+load('/Users/platel/Desktop/exp/Sofia/ani65_2023-10-01/Fall.mat')
+name='/Users/platel/Desktop/exp/Sofia/ani66/';
 % % PathSave='/Users/platel/Desktop/exp/analysis/';
 % PathSave='/Users/platel/Desktop/exp/analysis/';
 % 
-% daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
-% namefull=[PathSave daytime name '/'];
-% mkdir (namefull)    % make folder for saving analysis
+daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
+namefull=[name daytime  '/'];
+mkdir (namefull)    % make folder for saving analysis
 % disp(['make new folder ' namefull])
 
 MinPeakDistancesce=3 ;
 %synchronous_frames=2;
 MinPeakDistance=3;
-
+kmean_iter=100;
 sampling_rate=15;%; already loaded in nwb
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
+sce_n_cells_threshold =20;
 
 
+%% Load  data
 
-%% Load current data
+F=double(F(iscell(:,1)>0,:));
 % tic
 % name='/Users/platel/Desktop/exp/Sofia/mc_tiff_downs_6.5_10_um.tif';
 % % tifInfo = imfinfo('/Users/platel/Desktop/exp/Sofia/ani55/mc_concat_reca_940_92um-001-_grid_13_factor.tif');
@@ -71,11 +48,7 @@ synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
 % for i = 1:numPages
 %     F(:,i) = reshape(imread(name, i),sizex*sizey,1);
 % end
-% toc
-% 
-% 
-% 
-% % 
+
 % % plane0=double(plane0(iscell0(:,1)>0,:));
 % % plane1=double(plane1(iscell1(:,1)>0,:));
 % % 
@@ -112,7 +85,7 @@ synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
 % % disp('bleaching correction')
 % 
 % % Savitzky-Golay filter
-%  F = sgolayfilt(F',3,5)';
+F = sgolayfilt(F',3,5)';
 % disp('sgolayfilter')
 
 [NCell,Nz] = size(F);
@@ -139,26 +112,14 @@ MovT=transpose(1:Nz);  %put real time
 Raster = zeros(NCell,Nz);
 Acttmp2 = cell(1,NCell);
 ampli = cell(1,NCell);
-minithreshold=0.2;
+minithreshold=0.1;
 
 for i=1:NCell    
-    %th(i)=3*iqr(Tr1b(i,:));
-    th(i)=max ([  4*iqr(F(i,:)),  4*std(F(i,:)) ]) ;
-    % th(i)=max ([  3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ,minithreshold]) ;
-    % th(i)=3*std(Tr1b(i,:));
-    [amplitude,locs] = findpeaks(F(i,:),'MinPeakProminence',th(i),'MinPeakDistance',MinPeakDistance);
-    % valeurs_identiques = intersect (locs,WinActive);
-    % locs_sans_ide=setdiff(locs(:), valeurs_identiques);
+    th=max ([  3*iqr(F(i,:)),  3*std(F(i,:)) ,minithreshold]) ;
+    [amplitude,locs] = findpeaks(F(i,:),'MinPeakProminence',th,'MinPeakDistance',MinPeakDistance);
     Acttmp2{i}=locs;%%%%%%%%findchangepts(y,MaxNumChanges=10,Statistic="rms")
-    %Acttmp2{i}=locs;
-    %ampli{i}=amplitude;
 end
 
-%maybe we should get rid of interneurons=too high activity like 5% highest
-% %activity
-% for i=1:NCell    
-%     length(cell2mat(Acttmp2(1,i)))
-% end
 
 %f = figure('visible','off');
 for i = 1:NCell
@@ -177,10 +138,10 @@ end
 disp(['Sum transient: ' num2str(sum(MAct))])
 tic
     %%%%shuffling to find threshold for number of cell for sce detection
-MActsh = zeros(1,Nz-synchronous_frames);   
-Rastersh=zeros(NCell,Nz);   
-NShfl=100;
-Sumactsh=zeros(Nz-synchronous_frames,NShfl);   
+% MActsh = zeros(1,Nz-synchronous_frames);   
+% Rastersh=zeros(NCell,Nz);   
+% NShfl=100;
+% Sumactsh=zeros(Nz-synchronous_frames,NShfl);   
 % for n=1:NShfl
 % 
 %     for c=1:NCell
@@ -195,12 +156,11 @@ Sumactsh=zeros(Nz-synchronous_frames,NShfl);
 %     Sumactsh(:,n)=MActsh;
 % 
 % end
-% toc
+% % toc
 % percentile = 99; % Calculate the 5% highest point or 99
 %  sce_n_cells_threshold = prctile(Sumactsh, percentile,"all");
-sce_n_cells_threshold =10;
+% sce_n_cells_threshold =10;
 
-toc
 disp(['sce_n_cells_threshold: ' num2str(sce_n_cells_threshold)])
 %sce_n_cells_threshold = 5;
 %sce_n_cells_threshold =median(Sumactsh,'all');
@@ -234,16 +194,16 @@ end
 
 % figure
 % for i = 1:length(TRace)
-% %     line(MovT(TRace(i))*[1 1],[0 NCell+1],'Color','g');
-% % end
+%      line(MovT(TRace(i))*[1 1],[0 NCell+1],'Color','g');
+% end
 % hold on 
 % imagesc(Raster)
 % colormap jet
 % axis image
 % xlabel('sorted SCE #')     %was RACE
 % ylabel('sorted SCE #')  
-%plot MAct under
-%plot speed under
+% plot MAct under
+% plot speed under
 
 % exportgraphics(gcf,[namefull 'raster.png'],'Resolution',300)
 
@@ -263,13 +223,55 @@ end
 %[IDX2,sCl,M,S] = kmeansopt(Race,10,'var');
 %M=covariance matrix  S= Silhouette but of all clustering X10 times
 %sCl=median des silhouettes des clusters du meilleur clustering      IDX2=
-[IDX2,sCl,M,S] = kmeansopt(Race,200,'var');%increase to 50,  100 ?    
+% [IDX2,sCl,M,S] = kmeansopt(Race,kmean_iter,'var');%increase to 50,  100 ?  
+[IDX2,sCl,M,S] = kmeansopttest(Race,kmean_iter,'var');%increase to 50,  100 ?    
+
 % M = CovarM(Race);
 % IDX2 = kmedoids(M,NCl);
 NCl = max(IDX2);
 [~,x2] = sort(IDX2);
 MSort = M(x2,x2);
 disp(['nClusters: '  num2str(NCl)])
+
+% save([namefull,'assemblyraw.mat'],'assemblyraw')  
+
+% figure
+%  f = figure('visible','off');
+% subplot(1,2,1)
+% imagesc(MSort)
+% colormap jet
+% axis image
+% xlabel('sorted SCE #')     %was RACE
+% ylabel('sorted SCE #')     %was RACE
+% 
+% subplot(1,2,2)
+% imagesc(Race(x1,x2),[-1 1.2])
+% % axis image
+% xlabel('sorted SCE #')     %was RACE
+% ylabel('sorted Cell #')
+% axis tight
+% 
+% exportgraphics(gcf,[namefull 'clusters.png'],'Resolution',300)
+
+%% Save Clusters
+ %save([namefull,'Clusters.mat'],'IDX2')   % liste de tous les SCE et dans quel cluster ils sont
+    
+%% Remove cluster non-statistically significant: basically do some sce permutation 
+% and some clustering with the same number of cluster and if the best silhouette
+% of one cluster is higher than real data then remove this cluster.
+% since they are sorted remove the worst one 
+
+
+kmeans_surrogate=100; %or more...
+sClrnd = zeros(1,kmeans_surrogate);
+
+parfor i = 1:kmeans_surrogate  
+    sClrnd(i) = kmeansoptrnd(Race,10,NCl); 
+end
+%NClOK = sum(sCl>max(sClrnd));
+NClOK =sum(sCl>prctile(sClrnd,95));
+sClOK = sCl(1:NClOK)';
+disp(['nClustersOK: ' num2str(NClOK)])
 
 %Race clusters
 R = cell(0);
@@ -296,45 +298,6 @@ for i = 1:NCl
     assemblyraw{k} = transpose(find(CellCl==i));
 end
 
-% save([namefull,'assemblyraw.mat'],'assemblyraw')  
-
-% figure
- f = figure('visible','off');
-subplot(1,2,1)
-imagesc(MSort)
-colormap jet
-axis image
-xlabel('sorted SCE #')     %was RACE
-ylabel('sorted SCE #')     %was RACE
-
-subplot(1,2,2)
-imagesc(Race(x1,x2),[-1 1.2])
-% axis image
-xlabel('sorted SCE #')     %was RACE
-ylabel('sorted Cell #')
-axis tight
-
-exportgraphics(gcf,[namefull 'clusters.png'],'Resolution',300)
-
-%% Save Clusters
- %save([namefull,'Clusters.mat'],'IDX2')   % liste de tous les SCE et dans quel cluster ils sont
-    
-%% Remove cluster non-statistically significant: basically do some sce permutation 
-% and some clustering with the same number of cluster and if the best silhouette
-% of one cluster is higher than real data then remove this cluster.
-% since they are sorted remove the worst one 
-
-
-kmeans_surrogate=100; %or more...
-sClrnd = zeros(1,kmeans_surrogate);
-
-parfor i = 1:kmeans_surrogate  
-    sClrnd(i) = kmeansoptrnd(Race,10,NCl); 
-end
-%NClOK = sum(sCl>max(sClrnd));
-NClOK =sum(sCl>prctile(sClrnd,95));
-sClOK = sCl(1:NClOK)';
-disp(['nClustersOK: ' num2str(NClOK)])
 
 %new list of cells %JC
 

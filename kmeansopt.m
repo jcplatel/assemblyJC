@@ -13,7 +13,7 @@ end
 
 %% k-means loop
 % rng("default")
-parfor k = 1:N*18
+parfor k = 1:N*12
     NCl = floor((k-1)/N) + 2;
     % IDX = kmeans(E',NCl)'; %Normal K-means on distance metric
     IDX = kmeans(M,NCl,"MaxIter",300,'OnlinePhase','on');%,'distance','cityblock');    % Kmeans on distance of covariance metric

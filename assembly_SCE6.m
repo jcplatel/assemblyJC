@@ -1,11 +1,12 @@
 
 tic
-sampling_rate=10;
+
+% sampling_rate=10;
 %% Load settings
 MinPeakDistancesce=5 ;%was at  5 ?
 MinPeakDistance=3;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
-kmean_iter=1000;
+kmean_iter=100;
 kmeans_surrogate=100; 
 % load ([path 'colorcellnew.mat'])
 % colorcell=colorcell(1:361);
@@ -19,8 +20,9 @@ kmeans_surrogate=100;
 
 %% Load current data
 
+
 % Tr1b=double(F(iscell(:,1)>0,:));
-Tr1b=F;
+Tr1b=double(F);
 % Tr1b=F(colorcell<7,:);
 
 
@@ -48,7 +50,7 @@ warning(ws)%% preprocessing
 % disp('bleaching correction')
 
 % Savitzky-Golay filter
- Tr1b = sgolayfilt(Tr1b',3,7)';%was at 5
+ Tr1b = sgolayfilt(Tr1b',3,5)';%was at 5
 disp('sgolayfilter')
 
 [NCell,Nz] = size(Tr1b);
@@ -80,10 +82,10 @@ minithreshold=0.1;
 for i=1:NCell    
     
     % th(i)=3*iqr(Tr1b(i,:));
-    % th(i)=max ([3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ,minithreshold]) ;
+    th(i)=max ([3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ,minithreshold]) ;
     % th(i)=max ([3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ]) ;
     % th(i)=0.2;
-    th(i)=max ([3*iqr(Tr1b(i,:)),  minithreshold]) ;
+    % th(i)=max ([3*iqr(Tr1b(i,:)),  minithreshold]) ;
     %th(i)=3*std(Tr1b(i,:));
     [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakProminence',th(i),'MinPeakDistance',MinPeakDistance);
     % [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakHeight',th(i),'MinPeakDistance',MinPeakDistance);
@@ -150,14 +152,19 @@ end
 
 percentile = 99; % Calculate the 5% highest point or 99
 sce_n_cells_threshold = prctile(Sumactsh, percentile,"all");
+if sce_n_cells_threshold>20; sce_n_cells_threshold=20;end
 % 
-% disp(['sce_n_cells_threshold: ' num2str(sce_n_cells_threshold)])
+disp(['sce_n_cells_threshold: ' num2str(sce_n_cells_threshold)])
 % sce_n_cells_threshold = 10;
 
 
 % Select synchronies (RACE)         % TRace=localisation SCE 
 
 [pks,TRace] = findpeaks(MAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',MinPeakDistancesce);
+%remove peaks with too many cells, here threshold at 70 empirical
+idx=find (pks<100);
+TRace=TRace(idx);
+
 NRace = length(TRace);
 disp(['nSCE: '  num2str(NRace)])
 
@@ -220,11 +227,6 @@ NCl = max(IDX2);
 [~,x2] = sort(IDX2);
 MSort = M(x2,x2);
 disp(['nClusters: '  num2str(NCl)])
-
-
-
-
-
 
 %% Save Clusters
  %save([namefull,'Clusters.mat'],'IDX2')   % liste de tous les SCE et dans quel cluster ils sont
@@ -295,8 +297,8 @@ RaceOK = Race(:,IDX2<=NClOK);
 NRaceOK = size(RaceOK,2);
 disp(['nSCEOK: ' num2str(NRaceOK)])    
 
-figure
- % f = figure('visible','off');
+%figure
+f = figure('visible','off');
 subplot(1,2,1)
 imagesc(MSort)
 colormap jet
@@ -310,7 +312,7 @@ axis image
 xlabel('sorted SCE #')     %was RACE
 ylabel('sorted Cell #')
 
-exportgraphics(gcf,[namefull 'clusters.png'],'Resolution',300)
+% exportgraphics(gcf,[namefull 'clusters.png'],'Resolution',300)
 close gcf
 
 if NClOK>1
@@ -329,4 +331,5 @@ end
 
 % exportdata
 % save([namefull,'results.mat'])  
+rastercolor
 toc

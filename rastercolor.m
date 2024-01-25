@@ -21,11 +21,12 @@ colors = [
     0.75 0 0.75; % Dark Magenta
     0 0.75 0.75; % Dark Cyan
 ];
-
-Cl_order = [Cl1 Cl2 Cl3 Cl4];
+Cl_order = [ Cl1  Cl2 Cl3 Cl4];
+% Cl_order = [Cl0 Cl1 Cl2 Cl3 Cl4];
 Race_ordered=Race(x1,Cl_order);
 
-fig = figure('visible','off');
+% fig = figure('visible','off');
+fig=figure;
 set(fig, 'Color', 'k'); % Set the figure background color to black
 
 ax = axes('Parent', fig);
@@ -57,8 +58,8 @@ xlabel('sorted SCE #')     %was RACE
 ylabel('sorted Cell #')
 drawnow
 hold off
-namegraph=strcat(namefull,['raster' , '.png']);
-if isfolder(namefull)
-    exportgraphics(gcf,namegraph,'Resolution',300,'BackgroundColor','black')
-    close gcf
-end
+namegraph=strcat(namefull,['rasterall' , '.png']);
+% if isfolder(namefull)
+%     exportgraphics(gcf,namegraph,'Resolution',300,'BackgroundColor','black')
+%     close gcf
+% end
