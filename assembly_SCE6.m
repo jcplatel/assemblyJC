@@ -1,11 +1,11 @@
 
 tic
-sampling_rate=10;
+% sampling_rate=10;
 %% Load settings
 MinPeakDistancesce=5 ;%was at  5 ?
 MinPeakDistance=3;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
-kmean_iter=1000;
+kmean_iter=2000;
 kmeans_surrogate=100; 
 % load ([path 'colorcellnew.mat'])
 % colorcell=colorcell(1:361);
@@ -24,13 +24,12 @@ Tr1b=F;
 % Tr1b=F(colorcell<7,:);
 
 
-
 %speed =smoothdata(speed,'gaussian',50);
 [NCell,Nz] = size(Tr1b);
 
 % median normalize
 Tr1b=Tr1b./median(Tr1b,2);
-disp('median normalization')
+% disp('median normalization')
 
 %bleaching correction
 % traces=Tr1b;
@@ -49,16 +48,16 @@ warning(ws)%% preprocessing
 
 % Savitzky-Golay filter
  Tr1b = sgolayfilt(Tr1b',3,7)';%was at 5
-disp('sgolayfilter')
+% disp('sgolayfilter')
 
 [NCell,Nz] = size(Tr1b);
 
 % %refine only for speed<1
-WinRest=find(speed<=1);
-WinActive=find(speed>1);
+WinRest=find(speed<=2);
+WinActive=find(speed>2);
 % Tr1b = Tr1b(:,WinRest);
 [NCell,Nz] = size(Tr1b);
-disp (['Ncells= ' num2str(NCell)])
+% disp (['Ncells= ' num2str(NCell)])
 MovT=transpose(1:Nz);  %put real time
 
 %disp (['remove running frame: from ' num2str(length(traces))  ' to '  num2str(Nz)  ])
@@ -80,13 +79,9 @@ minithreshold=0.1;
 for i=1:NCell    
     
     % th(i)=3*iqr(Tr1b(i,:));
-    % th(i)=max ([3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ,minithreshold]) ;
-    % th(i)=max ([3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ]) ;
-    % th(i)=0.2;
-    th(i)=max ([3*iqr(Tr1b(i,:)),  minithreshold]) ;
-    %th(i)=3*std(Tr1b(i,:));
+    th(i)=max ([3*iqr(Tr1b(i,:)),  3*std(Tr1b(i,:)) ,minithreshold]) ;
+
     [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakProminence',th(i),'MinPeakDistance',MinPeakDistance);
-    % [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakHeight',th(i),'MinPeakDistance',MinPeakDistance);
     valeurs_identiques = intersect (locs,WinActive);
     % ampALL{i}=amplitude;
     [locs_sans_ide , idx ]=setdiff(locs(:), valeurs_identiques);
@@ -126,7 +121,7 @@ MAct = zeros(1,Nz-synchronous_frames);          %MAct= Sum active cells
 for i=1:Nz-synchronous_frames
     MAct(i) = sum(max(Raster(:,i:i+synchronous_frames),[],2));
 end
-disp(['Sum transient: ' num2str(sum(MAct))])
+% disp(['Sum transient: ' num2str(sum(MAct))])
 
 %%%%shuffling to find threshold for number of cell for sce detection
 MActsh = zeros(1,Nz-synchronous_frames);   
@@ -148,18 +143,21 @@ for n=1:NShfl
     Sumactsh(:,n)=MActsh;
 end
 
-percentile = 99; % Calculate the 5% highest point or 99
+percentile = 95; % Calculate the 5% highest point or 99
 sce_n_cells_threshold = prctile(Sumactsh, percentile,"all");
 % 
 % disp(['sce_n_cells_threshold: ' num2str(sce_n_cells_threshold)])
 % sce_n_cells_threshold = 10;
-
-
+if sce_n_cells_threshold>20 ; sce_n_cells_threshold=20; end
+if sce_n_cells_threshold<5 ; sce_n_cells_threshold=5; end
 % Select synchronies (RACE)         % TRace=localisation SCE 
 
 [pks,TRace] = findpeaks(MAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',MinPeakDistancesce);
+% idx=find(pks<70);
+%TRace=TRace(idx);
 NRace = length(TRace);
-disp(['nSCE: '  num2str(NRace)])
+
+% disp(['nSCE: '  num2str(NRace)])
 
 % Create RasterPlots%%%%%%very weird here increase RACE from n-1 :n+2 
 Race = zeros(NCell,NRace);      %Race=cells that participate in SCE 
@@ -169,61 +167,16 @@ for i = 1:NRace
     RasterRace(Race(:,i)==1,TRace(i)) = 1;                          %Raster with only activity in SCE
 end
 
-% % Display race
-% for i = 1:length(TRace)
-%     line(MovT(TRace(i))*[1 1],[0 NCell+1],'Color','g');
-% end
-
- %exportgraphics(gcf,[namefull 'activityall.tif'],'Resolution',1200)
-
-
-%display raster
-% % Display race
-
-%  f = figure('visible','off');
-% figure 
-% for i = 1:length(TRace)
-%     line(MovT(TRace(i))*[1 1],[0 NCell+1],'Color','g');
-% end
-% hold on 
-% imagesc(Raster)
-% colormap jet
-% axis image
-% xlabel('sorted SCE #')     %was RACE
-% ylabel('sorted SCE #')  
-% % plot MAct 
-% % plot speed 
-% 
-% exportgraphics(gcf,[namefull 'raster.png'],'Resolution',300)
-
-
-%return
-% break
-%% Save
-  % save([namefull,'Acttmp2.mat'],'Acttmp2')      %cell activity (time of peaks) 
-  % save([namefull,'Raster.mat'],'Race')      %Raster = real raster of cell activity
-  % save([namefull,'Race.mat'],'Race')        %Race=cells X SCE 
-  % save([namefull,'RasterRace.mat'],'Race')      %Raster with only activity in SCE over time
-  % save([namefull,'TRace.mat'],'TRace')      %time of significant SCE
-
 %% Clustering
 
 [NCell,NRace] = size(Race);
-%[IDX2,sCl,M,S] = kmeansopt(Race,10,'var');
-%M=covariance matrix  S= Silhouette but of all clustering X10 times
-%sCl=median des silhouettes des clusters du meilleur clustering
-%IDX2=which SCE to which cluster
 [IDX2,sCl,M,S] = kmeansopttest(Race,kmean_iter,'var');%increase to 50,  100 ?    
 % M = CovarM(Race);
 % IDX2 = kmedoids(M,NCl);
 NCl = max(IDX2);
 [~,x2] = sort(IDX2);
 MSort = M(x2,x2);
-disp(['nClusters: '  num2str(NCl)])
-
-
-
-
+% disp(['nClusters: '  num2str(NCl)])
 
 
 %% Save Clusters
@@ -241,18 +194,12 @@ for i = 1:kmeans_surrogate
     sClrnd(i) = kmeansoptrnd(Race,10,NCl); 
 end
 
-% for i = 1:kmeans_surrogate  
-%     f = parfeval(pool, @kmeansoptrnd,1,Race,100,NCl); % Replace your_function with your actual function
-%     sClrnd(i)= fetchOutputs(f);
-
 
 %NClOK = sum(sCl>max(sClrnd));
 NClOK =sum(sCl>prctile(sClrnd,95)); %use max, use 99%  ?
 sClOK = sCl(1:NClOK)';
-disp(['nClustersOK: ' num2str(NClOK)])
-% save([namefull,'results.mat'])  
-% return
-%new list of cells %JC
+% disp(['nClustersOK: ' num2str(NClOK)])
+
 
 %%%new add
 %Race clusters
@@ -284,19 +231,13 @@ end
 
 %%%%%%%
 
-% assemblystat= cell(0);
-% k = 0;
-% for i = 1:NClOK
-%     k = k+1;
-%     assemblystat{k} = transpose(find(CellCl==i));
-% end
-
 RaceOK = Race(:,IDX2<=NClOK);
 NRaceOK = size(RaceOK,2);
-disp(['nSCEOK: ' num2str(NRaceOK)])    
+% disp(['nSCEOK: ' num2str(NRaceOK)])    
 
-figure
- % f = figure('visible','off');
+%figure
+ f = figure('visible','off');
+ % figure
 subplot(1,2,1)
 imagesc(MSort)
 colormap jet
@@ -323,6 +264,11 @@ else
    % assemblyraw=[]
 end
 
+if NCl ==0
+    NClOK=0;
+     assemblyortho= cell(0);
+     assemblystat= cell(0);
+end
 % ncluster(sce_n_cells_threshold)=NCl;
 
 %write all data in excel
