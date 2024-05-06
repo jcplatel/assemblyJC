@@ -28,8 +28,8 @@ for k = 1:N
     % IDX = kmeans(M,NCl,options,"MaxIter",300,'OnlinePhase','on','display','final');  %'OnlinePhase','on', 'TolFun', 1e-4=default
     s = silh(M,IDX);
     IDX0(k,:) = IDX;
-    % S(k) = median(s);
-    S(k) = mean(s);
+    S(k) = median(s);%original
+    % S(k) = mean(s);
 end
 
 
@@ -39,7 +39,7 @@ IDX = IDX0(ClOK,:);         %choose and write best clustering of sce
 s = silh(M,IDX);                %calculate silhouette of this best clustering with a value by SCE
 sCl = zeros(1,NCl);
 for i = 1:NCl
-    % sCl(i) = median(s(IDX==i));         %calculate silhouette for each cluster
-     sCl(i) = mean(s(IDX==i));
+    sCl(i) = median(s(IDX==i));    %original     %calculate silhouette for each cluster
+     % sCl(i) = mean(s(IDX==i));
 end
 sCl = max(sCl);         

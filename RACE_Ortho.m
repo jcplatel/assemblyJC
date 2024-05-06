@@ -52,10 +52,12 @@ A2 = find(sum(CellCl) >= 2); %Cells in several clusters
 %maybe export CellCl from here before ortho  
 CellClraw=CellCl;
 %Keep cluster where they participate the most
-for i = A2
-    [~,idx] = max(CellR(i,:));
-    CellCl(:,i) = 0;
-    CellCl(idx,i) = 1;
+if A2>0
+    for i = A2
+        [~,idx] = max(CellR(i,:));
+        CellCl(:,i) = 0;
+        CellCl(idx,i) = 1;
+    end
 end
 C0 = cell(0);
 k = 0;
@@ -74,6 +76,9 @@ CellRCl = max(CellR([A1 A2],:),[],2);
 %% Assign RACE to groups of cells      #####didn't get that....
 
 NCl = length(C0);
+if NCl==0
+    return
+end
 [NCell,NRace] = size(Race);
 %Cell count in each cluster
 RCl = zeros(NCl,NRace);
