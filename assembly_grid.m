@@ -8,12 +8,8 @@ tic
 
 %% Load settings
 
-% filename='/Users/platel/Desktop/exp/Sofia/mc_tiff_downs_6.5_10_um.tif';     %to fill up 
-filename='E:\backup_various\sofia\best_data_mc_downsampled\P2_P3_P4\emx1\ani80_2023-02-23\tiff\downs_20_80_b_p3.tif';
-
-%filename='E:\backup_various\sofia\best_data_mc_downsampled\P0_P1\emx1\ani4mc_tiff_downs_6.5_10_um.tif';
-
-PathSave='E:\backup_various\sofia\analysisJC\';      %to fill up 
+filename='/Users/platel/Desktop/exp/Sofia/mc_tiff_downs_6.5_10_um.tif';     %to fill up 
+PathSave='/Users/platel/Desktop/exp/analysis/';      %to fill up 
 [pathold,name,ext] = fileparts(filename);
 
 daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
@@ -22,13 +18,14 @@ mkdir (namefull)    % make folder for saving analysis
 
 MinPeakDistancesce = 3 ;
 MinPeakDistance = 3 ;
-kmean_iter=100;
-sampling_rate=15;           % to fill up
+kmean_iter=1000;
+sampling_rate=5;           % to fill up
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
-size_pixel=20;%in um
+size_pixel=10;%in um
 % sce_n_cells_threshold = 10000/size_pixel^2; %10000=100um^2 basically size threshold of 100um 100 
 % sce_n_cells_threshold = 5000/size_pixel^2; %10000=100um^2 basically size threshold of 100um =50
-sce_n_cells_threshold = 150;
+sce_n_cells_threshold = 100;
+
 
 %% Load  data
 
@@ -146,7 +143,7 @@ disp(['Sum transient: ' num2str(sum(MAct))])
 %     Sumactsh(:,n)=MActsh;
 % 
 % end
-% 
+
 % percentile = 95; % Calculate the 5% highest point or 99
 %  sce_n_cells_threshold = prctile(Sumactsh, percentile,"all");
 % % sce_n_cells_threshold =10;

@@ -152,9 +152,9 @@ end
 percentile = 95; % Calculate the 5% highest point or 99
 sce_n_cells_threshold = prctile(Sumactsh, percentile,"all");
 % 
-% disp(['sce_n_cells_threshold: ' num2str(sce_n_cells_threshold)])
+% 
 if sce_n_cells_threshold>20 ; sce_n_cells_threshold=20; end
-
+disp(['sce_n_cells_threshold: ' num2str(sce_n_cells_threshold)])
 % sce_n_cells_threshold = 10;
 
 

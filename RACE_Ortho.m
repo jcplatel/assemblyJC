@@ -21,27 +21,27 @@ for i = 1:NCl
     CellR(:,i) = CellP(:,i)/sum(IDX2 == i);    %divided per nb of cell in this cluster
 end
 
-%Test for statistical significance (for highly active cell ?)
+%Test for statistical significance (for highly active cell and or clusters with a lot of SCE)
 CellCl = zeros(NCl,NCell); %Binary matrix of cell associated to clusters
 for j = 1:NCell
     %Random distribution among Clusters
     RClr = zeros(NCl,NShuf);
     Nrnd = sum(Race(j,:));
-    parfor l = 1:NShuf
-        Random = randperm(NRace);
-        Random = Random(1:Nrnd);
+    for l = 1:NShuf
+        Random = randperm(NRace);   % permutation des SCE
+        Random = Random(1:Nrnd);    % on ne garde que le nombre de SCE de la cellule en cours
         Racer = zeros(1,NRace);
-        Racer(Random) = 1;
+        Racer(Random) = 1;  
         for i = 1:NCl
-            RClr(i,l) = sum(Racer(:,IDX2 == i),2);
+            RClr(i,l) = sum(Racer(:,IDX2 == i),2);      %nombre de SCE qui sont dans le cluster i
         end
     end
     RClr = sort(RClr,2);
     %         ThMin = mean(Random) - 2*std(Random);
     %Proba above 95th percentile
-    ThMax = RClr(:,round(NShuf*(1-0.05/NCl))); 
+    ThMax = RClr(:,round(NShuf*(1-0.05/NCl)));  %calcul proba: nombre de fois à 95% que cette cellule est dans le cluster i
     for i = 1:NCl
-        CellCl(i,j) = double(CellP(j,i)>ThMax(i));% - double(RCl(:,j)<ThMin);
+        CellCl(i,j) = double(CellP(j,i)>ThMax(i));% - double(RCl(:,j)<ThMin);       on compare nombre reel à seuil permutation 
     end
 end
 
@@ -50,14 +50,13 @@ A0 = find(sum(CellCl) == 0); %Cells not in any cluster
 A1 = find(sum(CellCl) == 1); %Cells in one cluster
 A2 = find(sum(CellCl) >= 2); %Cells in several clusters
 %maybe export CellCl from here before ortho  
-CellClraw=CellCl;
-%Keep cluster where they participate the most
-if A2>0
-    for i = A2
-        [~,idx] = max(CellR(i,:));
-        CellCl(:,i) = 0;
-        CellCl(idx,i) = 1;
-    end
+CellClraw=CellCl;%THIS IS THE GUY WE CAN LOOK AT
+
+%Keep cluster where they participate the most THIS IS THE PART TO CHANGE
+for i = A2
+    [~,idx] = max(CellR(i,:));
+    CellCl(:,i) = 0;
+    CellCl(idx,i) = 1;
 end
 C0 = cell(0);
 k = 0;
@@ -76,9 +75,6 @@ CellRCl = max(CellR([A1 A2],:),[],2);
 %% Assign RACE to groups of cells      #####didn't get that....
 
 NCl = length(C0);
-if NCl==0
-    return
-end
 [NCell,NRace] = size(Race);
 %Cell count in each cluster
 RCl = zeros(NCl,NRace);
@@ -89,7 +85,7 @@ for i = 1:NCl
 end
 
 RCln = zeros(NCl,NRace);
-for j = 1:NRace  %permutation of SCE
+for j = 1:NRace  %permutation of cells 
     %Random distribution among Clusters
     RClr = zeros(NCl,NShuf);
     Nrnd = sum(Race(:,j));

@@ -10,43 +10,18 @@ Ne = size(E,2);
 if strcmp(type,'var')
     M = CovarM(E);
 end
-max_cluster=30;
+
 %% k-means loop
 % rng("default")
-parfor k = 1:N*max_cluster
+parfor k = 1:N*18
     NCl = floor((k-1)/N) + 2;
     % IDX = kmeans(E',NCl)'; %Normal K-means on distance metric
     % IDX = kmeans(M,NCl,"MaxIter",300,'OnlinePhase','on');%,'distance','cityblock');    % Kmeans on distance of covariance metric
-    IDX = kmeans(M,NCl,"MaxIter",300);%,'distance','cityblock');    % Kmeans on distance of covariance metric
+    IDX = kmeans(M,NCl,"MaxIter",300)%   % Kmeans on distance of covariance metric
     s = silh(M,IDX);
     IDX0(k,:) = IDX;
     S(k) = mean(s);
 end
-% stream = RandStream('mlfg6331_64');  % Random number stream
-% options = statset('UseParallel',1,'UseSubstreams',1, 'Streams',stream);
-% % toc
-% tic
-% for k = 2:20
-%     [IDX,~,sumD]  = kmeans(M,k,'Replicates',100,'Options',options,"MaxIter",300,'OnlinePhase','on','display','final'); 
-%     sumDk{k}=sumD;
-%     s=silhouette(M,IDX);
-%     IDX0(k,:) = IDX;
-%      S(k) = mean(s);
-% end
-% toc
-% % 
-% stream = RandStream('mlfg6331_64');  
-% % Random number stream 
-% options = statset('UseParallel',1,'UseSubstreams',1,  'Streams',stream);
-% for k = 2:20
-%     %NCl = floor((k-1)/N) + 2;
-% %     IDX = kmeans(E',NCl)'; %Normal K-means on distance metric
-%     IDX = kmeans(M,k,'Options',options,'Replicates',1000); %Kmeans on distance of covariance metric %'Options',statset('UseParallel',1)
-%     s = silh(M,IDX);
-%     IDX0(k,:) = IDX;
-%     S(k) = mean(s);
-% end
-
 
 %Best clustering for each cluster number
 
@@ -58,21 +33,10 @@ end
 % end
 
 %% keep best silhouette  %%%seem redundant...
-for n=1:max_cluster
-    med_S(n)=median(S(((n-1)*N+1):n*N),"omitmissing");
-    max_S(n)=max(S(((n-1)*N+1):n*N));
-    per_S(n)=prctile(S(((n-1)*N+1):n*N),95);
-end
-% % [~,ClOK] = max(med_S);
-% best_K=max(max_S(3:max_cluster));
-% [~,ClOK] = max();
-%put k<4 at 0 to find max starting at k=4
-S(1:(2*N)+1)=0;
-% [~,ClOK] = max(S((2*N)+1:end)); % maybe 95% should be better  
-[~,ClOK] = max(S);
+
+[~,ClOK] = max(S); % maybe 95% should be better  
 % test = prctile(S,95); 
 NCl = floor((ClOK-1)/N) + 2;
-% NCl=ClOK-1;
 IDX = IDX0(ClOK,:);
 s = silh(M,IDX);
 sCl = zeros(1,NCl);

@@ -1,10 +1,10 @@
-clear all
-close all
-
-load('Tr1b');
-Tr=Tr1;
-load('Speed');
-
+% load('/Users/platel/Desktop/exp/aurelie/to analyse/444175/results.mat','speed','Tr1b')
+load('/Users/platel/Desktop/exp/aurelie/to analyse/444175/results.mat')
+Tr=Tr1b;
+% load('Tr1b');
+% Tr=Tr1;
+% load('Speed');
+Speed=speed;
 %%
 [NCell,Nt]=size(Tr);
 dt=200;
@@ -12,7 +12,8 @@ dt=200;
 P=PCout.pc_TimeCourse';
 %%
 
-SigRef=diff(P(1,:));
+for n=1%:10
+SigRef=diff(P(n,:));
 % Calculate Shifted trace
 Cor1d=zeros(1,NCell);
 Shift1d=zeros(1,NCell);
@@ -65,6 +66,7 @@ hold on
 plot(t(floor(3*Nt/4):Nt),NDC-SpBlur(floor(3*Nt/4):Nt)/2,'g')
 xlabel('Time (in s)')
 
+end
 %break
 %% Savings
 save('DC.mat','DC')

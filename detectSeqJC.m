@@ -1,0 +1,105 @@
+% load('/Users/platel/Desktop/exp/aurelie/to analyse/444175/results.mat','speed','Tr1b')
+% load('/Users/platel/Desktop/exp/brainbow hippocampus/aurelie/to analyse/444175/results.mat')
+% /Users/platel/Desktop/exp/brainbow hippocampus/aurelie/to analyse/444175
+Tr=Tr1b;
+
+% load('Tr1b');
+% Tr=Tr1;
+% load('Speed');
+sigma = 50;
+
+% Apply Gaussian blur using imgaussfilt
+% blurredImage = imgaussfilt(originalImage, sigma);
+Speed=imgaussfilt(speed,sigma);
+% [ampli locs]=findpeaks(Speed,"MinPeakHeight",2,"MinPeakDistance",200);
+% figure; plot(Speed)
+% for i=1:numel(locs)
+%     text(locs(i),ampli(i),'*','FontSize',20);
+% end
+
+%%
+[NCell,Nt]=size(Tr());
+dt=200;
+[M4,PCout] = step1_PCA(GaussBlur1d(Tr,Nt/20,2),10);
+P=PCout.pc_TimeCourse';
+%%
+
+for n=1:10
+        %[NCell,Nt]=size(Tr());
+    %SigRef=diff(Speed);
+    
+    SigRef=diff(P(n,:));
+    
+    % Calculate Shifted trace
+    Cor1d=zeros(1,NCell);
+    Shift1d=zeros(1,NCell);
+    Trsh=zeros(NCell,Nt);
+    
+    for i=1:NCell
+            tmp=covnorm(Tr(i,:),SigRef,dt);
+            Cor1d(i)=max(tmp);
+            Shift1d(i)=find(tmp==max(tmp))-dt-1;
+            Trsh(i,:)=circshift(Tr(i,:)',-Shift1d(i))';
+    end
+    
+    DC=find(Cor1d>graythresh(Cor1d));
+    DC_cell{n}=DC;
+    % graythresh(Cor1d)
+    % figure;histogram(Cor1d,40);xline(graythresh(Cor1d))
+    NDC=length(DC);
+    TrDC=Tr1b(DC,:);
+    for i=1:NDC
+        TrDC(i,:)=Norm01(GaussBlur1d(TrDC(i,:),Nt/2,2));
+        TrDC(i,:)=Norm01(TrDC(i,:));
+        TrDC(i,:)=TrDC(i,:)-median(TrDC(i,:));
+    end
+    ShiftDC=Shift1d(DC);
+    ShiftDC_cell{n}=ShiftDC;
+    [~,xDel]=sort(ShiftDC);
+    
+    
+    %Assembly=sum(Trsh(DC,:));
+    %
+    % Sp=downsample(Speed,10);
+    Sp=downsample(Speed,1);
+    [NCell,Nt]=size(Tr1b);
+    SpBlur=GaussBlur(Sp,Nt/10);
+    t=(1:Nt)/10;
+    % t=MovT;
+    
+    % figure
+    fig = figure('visible','off');
+    subplot(4,1,1)
+    imagesc(t(1:floor(Nt/4)),1:NDC,TrDC(xDel,1:floor(Nt/4)),[0 0.5])
+    hold on
+    plot(t(1:floor(Nt/4)),NDC-SpBlur(1:floor(Nt/4))/2,'g')
+    subplot(4,1,2)
+    imagesc(t(floor(Nt/4):floor(Nt/2)),1:NDC,TrDC(xDel,floor(Nt/4):floor(Nt/2)),[0 0.5])
+    hold on
+    plot(t(floor(Nt/4):floor(Nt/2)),NDC-SpBlur(floor(Nt/4):floor(Nt/2))/2,'g')
+    subplot(4,1,3)
+    imagesc(t(floor(Nt/2):floor(3*Nt/4)),1:NDC,TrDC(xDel,floor(Nt/2):floor(3*Nt/4)),[0 0.5])
+    hold on
+    plot(t(floor(Nt/2):floor(3*Nt/4)),NDC-SpBlur(floor(Nt/2):floor(3*Nt/4))/2,'g')
+    subplot(4,1,4)
+    imagesc(t(floor(3*Nt/4):Nt),1:NDC,TrDC(xDel,floor(3*Nt/4):Nt),[0 0.5])
+    colormap hot
+    hold on
+    plot(t(floor(3*Nt/4):Nt),NDC-SpBlur(floor(3*Nt/4):Nt)/2,'g')
+    xlabel('Time (in s)')
+    
+    namegraph=['PC' num2str(n)];
+    exportgraphics(gcf,[namefull namegraph '.png'],'Resolution',300);
+    close gcf
+    save( [namefull   'PC'   num2str(n) '.mat'],'DC' ,'ShiftDC' ,'TrDC')
+% save('DCShift.mat','ShiftDC')
+% save('TrDC.mat','TrDC')
+
+
+
+end
+%break
+%% Savings
+% save('DC.mat','DC')
+% save('DCShift.mat','ShiftDC')
+% save('TrDC.mat','TrDC')
