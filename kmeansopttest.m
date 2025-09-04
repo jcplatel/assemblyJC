@@ -1,4 +1,4 @@
-function [IDXs,sCl,M,S] = kmeansopt(E,N,type)
+function [IDXs,sCl,M,S,NClini] = kmeansopttest(E,N,type,NClini) % on clusterize les SCE sur la base des cellules qui y participe
 
 %E p parameters (cells) by N Events
 %N number of trials per cluster number
@@ -13,14 +13,38 @@ end
 
 %% k-means loop
 % rng("default")
-NCl=10;
+%loop to find best number of cluster
+% M=gpuArray(M);
+% if NClini==0   %calculate if does not exist
+%     for NCl=5:18
+%         parfor k = 1:100
+%             % NCl = floor((k-1)/N) + 2;
+%             % IDX = kmeans(E',NCl)'; %Normal K-means on distance metric
+%             IDX = kmeans(M,NCl,'distance','correlation');    % Kmeans on distance of covariance metric
+%             s = silh(M,IDX);
+%             S(k) = mean(s);%original
+%         end
+%         SS(NCl)=mean(S);
+%     end
+%     [~ ,NClini]=max(SS);
+% end
+
+% S=[];
+% s=[];
+% IDX0=[];
+S=zeros(N,1);
+IDX0=zeros(N,Ne);
+NCl=NClini;
+cM = parallel.pool.Constant(M);
 parfor k = 1:N
+    Mloc = cM.Value; 
     % NCl = floor((k-1)/N) + 2;
     % IDX = kmeans(E',NCl)'; %Normal K-means on distance metric
-    IDX = kmeans(M,NCl,"MaxIter",300,'OnlinePhase','on');%,'distance','cityblock');    % Kmeans on distance of covariance metric
-    s = silh(M,IDX);
+    IDX = kmeans(Mloc,NCl,"MaxIter",300,'OnlinePhase','on');%,'distance','cityblock');    % Kmeans on distance of covariance metric
+    % s = silh(M,IDX);
     IDX0(k,:) = IDX;
-    S(k) = mean(s);%original
+    % S(k) = mean(s);%original
+    S(k) = mean(silh(M,IDX));%original
 end
 
 

@@ -1,0 +1,205 @@
+% New method for statistically finding assemblies and RACE recruitment
+% with Bonferroni correction, from clustering output 
+
+%load('Race.mat')
+%load('Clusters.mat') 
+%load('NClustersOK.mat')
+%load('TRace')
+
+[NCell,NRace] = size(Race);
+NCl = NClOK;
+NShuf = 1000;
+
+%% Statistiscal definition of cell assemblies
+
+% Count number of participation to each cluster
+CellP = zeros(NCell,NCl); 
+CellR = zeros(NCell,NCl);
+% here we use NClOK so we stick only to the statistically significant clusters
+for i = 1:NCl
+    CellP(:,i) = sum(Race(:,IDX2 == i),2);  % number of participation to each cluster
+    CellR(:,i) = CellP(:,i)/sum(IDX2 == i); % divided per nb of cell in this cluster
+end
+
+% ======== CONSTANTS for workers (avoid repeated transfers) ========
+% Large read-only data sent once per worker
+cRace   = parallel.pool.Constant(Race);     % [NCell x NRace]
+% Precompute cluster masks once (logical vectors)
+maskCl = cell(1, NCl);
+for i = 1:NCl
+    maskCl{i} = (IDX2 == i);
+end
+cMaskCl = parallel.pool.Constant(maskCl);
+% CellP is used read-only inside parfor
+cCellP  = parallel.pool.Constant(CellP);
+% =================================================================
+
+% Test for statistical significance (for highly active cell and/or clusters with many SCE)
+CellCl = zeros(NCl,NCell, 'uint16'); % Binary matrix of cell associated to clusters
+parfor j = 1:NCell
+    RaceLoc   = cRace.Value;
+    maskClLoc = cMaskCl.Value;
+    CellPLoc  = cCellP.Value;
+
+    Nrnd = sum(RaceLoc(j,:));
+    if Nrnd == 0
+        continue
+    end
+
+    % use compact type for counts
+    RClr = zeros(NCl, NShuf, 'uint16');
+
+    for l = 1:NShuf
+        randIdx = randperm(size(RaceLoc,2), Nrnd);  % random SCE indices for this cell
+        % Count, per cluster, how many of those randIdx fall in that cluster
+        for i = 1:NCl
+            RClr(i,l) = sum(maskClLoc{i}(randIdx));
+        end
+    end
+
+    % Proba above 95th percentile (Bonferroni)
+    RClr  = sort(RClr,2);
+    ThMax = RClr(:, round(NShuf*(1 - 0.05/NCl)));
+
+    for i = 1:NCl
+        CellCl(i,j) = uint16( CellPLoc(j,i) > ThMax(i) );
+    end
+end
+
+% save([namefull,'CellClstatraw.mat'],'CellCl')  
+A0 = find(sum(CellCl) == 0); % Cells not in any cluster
+A1 = find(sum(CellCl) == 1); % Cells in one cluster
+A2 = find(sum(CellCl) >= 2); % Cells in several clusters
+% maybe export CellCl from here before ortho  
+CellClraw = CellCl; 
+
+% %added 2025-09-02
+% assemblyraw= cell(0);
+% k = 0;
+% for i = 1:NCl
+%     k = k+1;
+%     assemblyraw{k} = transpose(find(CellCl==i));
+% end
+
+
+% % Keep cluster where they participate the most 
+for i = A2
+    [~,idx] = max(CellR(i,:));
+    CellCl(:,i) = 0;
+    CellCl(idx,i) = 1;
+end
+C0 = cell(0); % Initialize cell array to store clusters
+k = 0;
+for i = 1:NCl
+    if length(find(CellCl(i,:)))>9 % limit of cell per assembly , was at 5
+        k = k+1;
+        C0{k} = find(CellCl(i,:));
+    end
+end
+assemblyortho = C0;
+% save([namefull 'assemblyortho'],'assemblyortho')%
+
+% Participation rate to its own cluster
+%CellRCl = max(CellR([A1 A2],:),[],2);
+% save([namefull 'CellRCl'],'CellRCl')
+
+%% Assign RACE to groups of cells
+
+NCl = length(C0);
+% [NCell,NRace] = size(Race);
+
+% Cell count in each cluster
+RCl = zeros(NCl,NRace);
+PCl = zeros(NCl,NRace);
+for i = 1:NCl
+    RCl(i,:) = sum(Race(C0{i},:)); % sum SCE from assembly assigned to cluster
+end
+
+% ======== CONSTANTS for workers (second stage) ========
+cC0     = parallel.pool.Constant(C0);          % cell array of indices
+cRCl    = parallel.pool.Constant(RCl);         % observed counts
+cRace2  = parallel.pool.Constant(Race);        % used only to get NCell and sums
+cNrnd   = parallel.pool.Constant(sum(Race,1)); % #active cells per event (1 x NRace)
+% ======================================================
+
+RCln = zeros(NCl,NRace, 'uint16');
+parfor j = 1:NRace  % permutation of cells (parallel over events)
+    C0loc   = cC0.Value;
+    RCl_loc = cRCl.Value;
+    Nrnd    = cNrnd.Value(j);
+    NCellLoc = size(cRace2.Value, 1);
+
+    if Nrnd == 0
+        % Normalize (probability)
+        RCln(:,j) = 0;
+        % PCl(:,j) remains zeros
+        continue
+    end
+
+    % Accumulate counts across shuffles with compact type
+    RClr = zeros(NCl, NShuf, 'uint16');
+
+    for l = 1:NShuf
+        idx = randperm(NCellLoc, Nrnd); % sample active cells for this event
+        % Count how many sampled cells belong to each assembly (no big Racer vector)
+        for i = 1:NCl
+            RClr(i,l) = sum(ismember(idx, C0loc{i}));
+        end
+    end
+
+    RClr  = sort(RClr,2);
+    ThMax = RClr(:, round(NShuf*(1 - 0.05/NCl)));
+
+    for i = 1:NCl
+        PCl(i,j) = double( RCl_loc(i,j) > ThMax(i) );
+    end
+
+    % Normalize (probability) 
+    RCln(:,j) = uint16( RCl_loc(:,j) / Nrnd ); 
+end
+% save([namefull,'RaceCl2'],'PCl')
+
+%% Show Sorted Rasterplot
+
+% [NCell,NRace] = size(Race);
+% NCl = length(C0);
+
+% Recreate CellCl (equivalent of RCl for the cells)
+% CellCl = zeros(NCl,NCell);
+% for i = 1:NCl
+%     CellCl(i,C0{i}) = 1;
+% end
+% 
+% NCl = length(C0);
+
+Cl0 = find(sum(PCl,1) == 0);% statistically no sce
+Cl1 = find(sum(PCl,1) == 1);% only 1 assembly
+Cl2 = find(sum(PCl,1) == 2);% 2 assemblies
+Cl3 = find(sum(PCl,1) == 3);% 3 assemblies
+Cl4 = find(sum(PCl,1) == 4);% 4 assemblies
+
+Bin = 2.^(0:NCl-1);
+
+% Sort Cl1
+[~,x01] = sort(Bin*PCl(:,Cl1));
+Cl1 = Cl1(x01);
+
+% Sort Cl2
+[~,x02] = sort(Bin*PCl(:,Cl2));
+Cl2 = Cl2(x02);
+
+% Sort Cl3
+[~,x03] = sort(Bin*PCl(:,Cl3));
+Cl3 = Cl3(x03);
+
+RList = [Cl0 Cl1 Cl2 Cl3 Cl4];
+
+% [X1,x1] = sort(Bin*CellCl);  % resort assembly from this CellCl 
+
+keepAsm = sum(PCl,2) > 0;
+assemblyortho = assemblyortho(keepAsm);
+NCl           = sum(keepAsm);
+% Créez une version filtrée de CellCl en utilisant le masque keepAsm
+CellCl_final = double(CellCl(keepAsm,:));
+% Trie les cellules en fonction de l'appartenance aux assemblées finales
+[X1,x1] = sort(Bin(1:NCl)*CellCl_final);

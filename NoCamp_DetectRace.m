@@ -11,7 +11,7 @@ tic
 % load('Speed')      % instantaneous speed
 imaging_sampling_rate=10;
 kmean_iter=1000;
-kmeans_surrogate=1000; 
+kmeans_surrogate=100; 
 MinPeakDistancesce=5 ;%was at  5 ?
 MinPeakDistance=[];
 percentile=[];
@@ -39,6 +39,16 @@ synchronous_frames=round(0.2*imaging_sampling_rate,0); %200ms *sampling rate
 % Tr1b=double(allcells(iscell(:,1)>0,:));
 Tr1b=F;
 [NCell,Nz] = size(Tr1b);
+Tr1b = sgolayfilt(Tr1b',3,7)';%was at 5
+%bleaching correction baseline division
+
+ws = warning('off','all');
+for i=1:NCell
+    p0=polyfit(1:Nz,Tr1b(i,:),3);
+    Tr1b(i,:)=Tr1b(i,:)./polyval(p0,1:Nz);
+end
+warning(ws)%% preprocessing
+
 Tr1b=Tr1b./median(Tr1b,2);
 
 
@@ -144,7 +154,7 @@ end
 
 %% Clustering
 [NCell,NRace] = size(Race);
-[IDX2,sCl,M,S] = kmeansopt(Race,100,'var');
+[IDX2,sCl,M,S] = kmeansopttest(Race,100,'var',NClini);
 % M = CovarM(Race);
 % IDX2 = kmedoids(M,NCl);
 NCl = max(IDX2)

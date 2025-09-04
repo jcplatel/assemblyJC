@@ -11,7 +11,7 @@ end
 
 %% Covariance matrix
 M = zeros(Ne,Ne);
-parfor i = 1:Ne
+for i = 1:Ne
     for j = 1:Ne
         M(i,j) = covnorm(ERnd(:,i),ERnd(:,j),0);
     end
@@ -22,13 +22,17 @@ M(isnan(M)) = 0;
 %% k-means
 % stream = RandStream('mlfg6331_64');  % Random number stream
 % options = statset('UseParallel',1,'UseSubstreams',1, 'Streams',stream);
-
+S=zeros(N,1);
+IDX0=zeros(N,Ne);
+% cM = parallel.pool.Constant(M);
 for k = 1:N
+    % Mloc = cM.Value; 
     IDX = kmeans(M,NCl); %modified on 2023-10-22
     % IDX = kmeans(M,NCl,options,"MaxIter",300,'OnlinePhase','on','display','final');  %'OnlinePhase','on', 'TolFun', 1e-4=default
-    s = silh(M,IDX);
+    % s = silh(M,IDX);
     IDX0(k,:) = IDX;
-    S(k) = median(s);%original
+    % S(k) = median(s);%original
+    S(k) = median(silh(M,IDX));%original
     % S(k) = mean(s);
 end
 

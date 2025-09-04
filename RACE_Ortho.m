@@ -8,7 +8,7 @@
 
 [NCell,NRace] = size(Race);
 NCl = NClOK;
-NShuf = 5000;
+NShuf = 1000;
 Nt = 14000; % For multiple movies
 
 %% Statistiscal definition of cell assemblies
@@ -22,8 +22,8 @@ for i = 1:NCl
 end
 
 %Test for statistical significance (for highly active cell and or clusters with a lot of SCE)
-CellCl = zeros(NCl,NCell); %Binary matrix of cell associated to clusters
-for j = 1:NCell
+CellCl = zeros(NCl,NCell, 'uint16'); %Binary matrix of cell associated to clusters
+parfor j = 1:NCell
     %Random distribution among Clusters
     RClr = zeros(NCl,NShuf);
     Nrnd = sum(Race(j,:));
@@ -61,7 +61,7 @@ end
 C0 = cell(0);
 k = 0;
 for i = 1:NCl
-    if length(find(CellCl(i,:)))>5 % is this the limit of cell per assembly ???it seems
+    if length(find(CellCl(i,:)))>9 %  limit of cell per assembly , was at 5
         k = k+1;
         C0{k} = find(CellCl(i,:));
     end
@@ -84,12 +84,12 @@ for i = 1:NCl
     RCl(i,:) = sum(Race(C0{i},:));   %sum sce from assembly assigned to cluster
 end
 
-RCln = zeros(NCl,NRace);
-for j = 1:NRace  %permutation of cells 
+RCln = zeros(NCl,NRace, 'uint16');
+parfor j = 1:NRace  %permutation of cells 
     %Random distribution among Clusters
     RClr = zeros(NCl,NShuf);
     Nrnd = sum(Race(:,j));
-    parfor l = 1:NShuf
+    for l = 1:NShuf
         Random = randperm(NCell);
         Random = Random(1:Nrnd);
         Racer = zeros(NCell,1);
