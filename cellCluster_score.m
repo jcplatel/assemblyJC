@@ -1,0 +1,212 @@
+
+function out = cellCluster_score(E, labels_cells, labels_events, varargin)
+% CELLCLUSTER_SCORE  Score global (unique) de qualité d'un clustering de cellules
+%
+% USAGE
+%   out = cellCluster_score(E, labels_cells, labels_events)
+%   out = cellCluster_score(...,'weights',[1 0.5 0.5 1 0.5],'plot',true)
+%
+% INPUTS
+%   E             : nEvents x nCells binary (participation)
+%   labels_cells  : nCells x 1 (cluster id pour chaque cellule)
+%   labels_events : nEvents x 1 (cluster id pour chaque événement) OR [] (optionnel)
+%
+% OPTIONAL NAME/VALUE
+%   'weights' : [w_spec w_leak w_contam w_fracSignif w_modularity] (default [1 0.7 0.7 1 0.5])
+%   'plot'    : true/false (default false) -> trace heatmaps/barplots diagnostiques
+%   'fdr_alpha': FDR threshold for significant links (default 0.05)
+%   'norm_method': 'minmax' or 'percentile' (default 'percentile')
+%   'percentile_range': [pmin pmax] for percentile normalization (default [5 95])
+%
+% OUTPUT (struct out)
+%   out.Q                 : scalar score composite (higher = meilleur)
+%   out.sub                : struct of raw submetrics (specificity, leakOut, contamMean, fracSignif, Qmod)
+%   out.norm               : normalized submetrics in [0,1]
+%   out.weights            : used weights
+%   out.details            : full matrices (P, raw_CB, pvals, contamIn)
+%
+% NOTE: par défaut, labels_events=[] est toléré; dans ce cas certaines métriques sont calculées différemment.
+
+% ---------------------------
+% Paramètres par défaut
+p = inputParser;
+addParameter(p,'weights',[1 0.7 0.7 1 0.5]);
+addParameter(p,'plot',false,@islogical);
+addParameter(p,'fdr_alpha',0.05);
+addParameter(p,'norm_method','percentile',@(x) any(strcmp(x,{'minmax','percentile'})));
+addParameter(p,'percentile_range',[5 95], @(x)isnumeric(x) && numel(x)==2);
+parse(p,varargin{:});
+weights = p.Results.weights;
+doPlot = p.Results.plot;
+alphaFDR = p.Results.fdr_alpha;
+norm_method = p.Results.norm_method;
+prange = p.Results.percentile_range;
+
+% Sanity
+if nargin < 3, labels_events = ones(size(E,1),1); end
+if isempty(labels_events), labels_events = ones(size(E,1),1); end
+
+% Convert
+E = double(E>0);
+[nE, nC] = size(E);
+uc = unique(labels_cells(:))';
+ue = unique(labels_events(:))';
+Kc = numel(uc);
+Ke = numel(ue);
+
+% ---------- compute internal matrices (adapted from previous function) ----------
+cells_in_c = arrayfun(@(k) find(labels_cells==k), uc, 'uni', 0);
+events_in_b = arrayfun(@(b) find(labels_events==b), ue, 'uni', 0);
+
+raw_CB = zeros(Kc, Ke);
+for ic = 1:Kc
+    Cidx = cells_in_c{ic};
+    for ib = 1:Ke
+        Eidx = events_in_b{ib};
+        block = E(Eidx, Cidx);
+        raw_CB(ic,ib) = sum(block(:));
+    end
+end
+
+% totals
+particip_c = sum(raw_CB,2);   % participations totales par cluster de cellules
+particip_b = sum(raw_CB,1)';  % participations totales par assemblée d'événements
+total_particip = sum(particip_c);
+
+% P normalisé (fraction par couple c,b)
+P = zeros(Kc,Ke);
+for ic=1:Kc
+    for ib=1:Ke
+        denom = max(1, numel(cells_in_c{ic}) * numel(events_in_b{ib}));
+        P(ic,ib) = raw_CB(ic,ib)/denom;
+    end
+end
+
+% primary assembly, specificity, leakOut
+primary_b = zeros(Kc,1);
+specificity = zeros(Kc,1);
+leakOut = zeros(Kc,1);
+for ic=1:Kc
+    [~, ibmax] = max(P(ic,:));
+    primary_b(ic) = ue(ibmax);
+    p_row = P(ic,:);
+    pmax = p_row(ibmax);
+    others = p_row; others(ibmax) = [];
+    mu_others = mean(others);
+    specificity(ic) = (pmax - mu_others) / max(1e-12, pmax + mu_others);
+    specificity(ic) = max(0, min(1, specificity(ic)));
+    total_c = particip_c(ic);
+    leakOut(ic) = (total_c - raw_CB(ic,ibmax)) / max(1, total_c);
+end
+
+% contamination vue depuis events (fraction des participations de b dues à c)
+contamIn = zeros(Kc,Ke);
+for ib = 1:Ke
+    totb = particip_b(ib);
+    if totb>0
+        contamIn(:,ib) = raw_CB(:,ib) / totb;
+    else
+        contamIn(:,ib) = 0;
+    end
+end
+% contamination résumé par cluster: moyenne des contamIn sur b (pondérée si souhaité)
+contam_mean_per_c = mean(contamIn,2);
+
+% Fisher/hypergeo pvals pour (c,b)
+pvals = ones(Kc,Ke);
+for ic=1:Kc
+    Ksucc = particip_c(ic);
+    for ib=1:Ke
+        ndraw = particip_b(ib);
+        kobs = raw_CB(ic,ib);
+        pvals(ic,ib) = 1 - hygecdf(max(kobs-1,0), total_particip, Ksucc, ndraw);
+    end
+end
+
+% correction multiple FDR par colonne (assemblée b) ou globale ; on calcule fraction signif (FDR)
+pvec = pvals(:);
+[~,~,~,adjp] = fdr_bh(pvec, alphaFDR); % fonction fdr_bh incluse ci-dessous
+adjp = reshape(adjp, size(pvals));
+fracSignif = mean(adjp(:) < alphaFDR);
+
+% Modularity: si on veut un score du graphe cellules-cellules (co-participation)
+% Construire une matrice cellule-cellule = co-participation counts (ou normalized)
+CC = E' * E;  % nC x nC
+% convert to graph and compute modularity with given labels_cells
+% modularity computation (simple implementation)
+Qmod = compute_modularity(CC, labels_cells);
+
+% --------------- aggregate submetrics (weighted, normalized) ---------------
+% raw submetrics to combine:
+sub.spec_mean_w = sum(specificity .* cellfun(@numel,cells_in_c)') / sum(cellfun(@numel,cells_in_c));
+sub.leak_mean_w = sum(leakOut .* cellfun(@numel,cells_in_c)') / sum(cellfun(@numel,cells_in_c));
+sub.contam_mean_w = mean(contam_mean_per_c);  % moyenne simple
+sub.fracSignif = fracSignif;
+sub.Qmod = Qmod;
+
+% ---------------- Safe normalization (handles single-analysis scalars) ---------------
+vals = [sub.spec_mean_w, sub.leak_mean_w, sub.contam_mean_w, sub.fracSignif, sub.Qmod];
+dir = [1 -1 -1 1 1];  % direction: 1 = plus c'est mieux, -1 = moins c'est mieux
+normVals = zeros(size(vals));
+
+for i = 1:numel(vals)
+    v = vals(i) * dir(i); % flip if necessary so higher = better
+
+    % If we have only a scalar (single analysis), use sensible fixed bounds:
+    if isscalar(v)
+        switch i
+            case 1  % specificity in [0,1]
+                vmin = 0; vmax = 1;
+            case {2,3} % leak and contam (we inverted), sensible bounds [0,1]
+                vmin = 0; vmax = 1;
+            case 4 % fracSignif in [0,1]
+                vmin = 0; vmax = 1;
+            case 5 % modularity typically in [-0.5, 1]
+                vmin = -0.5; vmax = 1;
+            otherwise
+                vmin = v; vmax = v; % fallback
+        end
+    else
+        % If vector (many analyses), use percentile-based robust bounds
+        pmin = prange(1); pmax = prange(2);
+        vmin = prctile(v, pmin);
+        vmax = prctile(v, pmax);
+    end
+
+    normVals(i) = (v - vmin) / (vmax - vmin + eps);
+    normVals(i) = max(0, min(1, normVals(i)));
+end
+
+
+% Compose Q
+w = weights;
+Q = w(1)*normVals(1) + w(2)*normVals(2) + w(3)*normVals(3) + w(4)*normVals(4) + w(5)*normVals(5);
+% normalize by sum weights so Q in [0,1] if norms are in [0,1]
+Q = Q / (sum(abs(w)) + eps);
+
+% Output
+out.Q = Q;
+out.sub = sub;
+out.norm = struct('spec',normVals(1), 'leak',normVals(2), 'contam',normVals(3), 'fracSignif',normVals(4), 'Qmod',normVals(5));
+out.weights = w;
+out.details = struct('P',P,'raw_CB',raw_CB,'pvals',pvals,'adjp',adjp,'contamIn',contamIn,'CC',CC);
+out.params = struct('norm_method',norm_method,'prange',prange,'alphaFDR',alphaFDR);
+
+% optional plotting
+if doPlot
+    figure('Name','cellCluster_score diagnostics','NumberTitle','off','Units','normalized','Position',[.1 .1 .7 .7]);
+    subplot(2,3,1);
+    imagesc(P); colorbar; title('P(c,b) normalized'); xlabel('events b'); ylabel('cell clusters c');
+    subplot(2,3,2);
+    heatmap(adjp < alphaFDR); title('Significant (FDR) links (c x b)');
+    subplot(2,3,3);
+    bar([sub.spec_mean_w, sub.leak_mean_w, sub.contam_mean_w, sub.fracSignif, sub.Qmod]);
+    set(gca,'XTickLabel',{'Spec','Leak','Contam','FracSig','Qmod'}); title('Raw submetrics');
+    subplot(2,3,4);
+    bar([out.norm.spec,out.norm.leak,out.norm.contam,out.norm.fracSignif,out.norm.Qmod]);
+    set(gca,'XTickLabel',{'Spec','Leak','Contam','FracSig','Qmod'}); title('Normalized submetrics');
+    subplot(2,3,5);
+    text(0.1,0.5,sprintf('Composite Q = %.3f',Q),'FontSize',14); axis off;
+end
+
+end

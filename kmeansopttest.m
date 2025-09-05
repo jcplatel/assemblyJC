@@ -44,7 +44,7 @@ parfor k = 1:N
     % s = silh(M,IDX);
     IDX0(k,:) = IDX;
     % S(k) = mean(s);%original
-    S(k) = mean(silh(M,IDX));%original
+    S(k) = mean(silh(Mloc,IDX));%original
 end
 
 

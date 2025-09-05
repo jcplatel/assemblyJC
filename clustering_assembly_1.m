@@ -83,18 +83,20 @@ else
    % assemblyraw=[]
 end
 
-% %recalcul silhouette cluster finaux
-% idx_vec = zeros(NCell,1) ;
-% for k = 1:numel(assemblyortho)
-%     idx_vec(assemblyortho{k}) = k;
-% end
-% 
-% valid = idx_vec > 0;%on ne garde que les cellules qui sont clusterisées
-% %refaire Race 
-% 
-% M_valid = M(valid, valid);      % réduit la matrice de similarité
-% idx_valid = idx_vec(valid);     % enlève les 0
-% sClOK = mean(silh(M_valid, idx_valid));
+%% recalcul silhouette cluster finaux
+[~,x2] = sort(IDX2);%cluster de SCE
+a = find (IDX2(x2)>NCl,1, 'first')-1;
+x2=x2(1:a);
+MSort_ok = M(x2,x2);
+IDX2_ok = IDX2(x2);
+s = silh(MSort_ok, IDX2_ok);
+
+sClOK = zeros(1,NCl);
+for i = 1:NCl
+    sClOK(i) = median(s(IDX2_ok==i));%original
+end
+mean_sClOK=mean(sClOK);
+%%
 
 if savefig==1 &&  NClOK>1
     figure('visible','off');

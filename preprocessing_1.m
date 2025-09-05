@@ -76,9 +76,6 @@ for i=1:NCell
     ampli_sans_ide=amplitude(idx);
     Acttmp2{i}=locs_sans_ide;%%%%%%%%findchangepts(y,MaxNumChanges=10,Statistic="rms")
 end
-%trouver les cellules suractives
-
-
 
 % %f = figure('visible','off');
 for i = 1:NCell
