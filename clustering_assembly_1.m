@@ -13,8 +13,8 @@ end
 NCl = max(IDX2);
 [~,x2] = sort(IDX2);%cluster de SCE
 MSort = M(x2,x2);
-disp(['nClusters: '  num2str(NCl)])
-
+% disp(['nClusters: '  num2str(NCl)])
+%fprintf('nClusters: %d ;' , NCl)
 
 %% Save Clusters
  %save([namefull,'Clusters.mat'],'IDX2')   % liste de tous les SCE et dans quel cluster ils sont
@@ -31,12 +31,11 @@ parfor i = 1:kmeans_surrogate
     sClrnd(i) = kmeansoptrnd(cRace.Value,10,NCl); 
 end
 
-
 %NClOK = sum(sCl>max(sClrnd));
 NClOK =sum(sCl>prctile(sClrnd,95)); %use max, use 99%  ?
 sClOK = sCl(1:NClOK)';
-disp(['nClustersOK: ' num2str(NClOK)])
-
+% disp(['nClustersOK: ' num2str(NClOK)])
+%fprintf('nClustersOK: %d ;' , NClOK)
 
 %%%new add
 %Race clusters
@@ -84,18 +83,23 @@ else
 end
 
 %% recalcul silhouette cluster finaux
-[~,x2] = sort(IDX2);%cluster de SCE
-a = find (IDX2(x2)>NCl,1, 'first')-1;
-x2=x2(1:a);
-MSort_ok = M(x2,x2);
-IDX2_ok = IDX2(x2);
-s = silh(MSort_ok, IDX2_ok);
-
-sClOK = zeros(1,NCl);
-for i = 1:NCl
-    sClOK(i) = median(s(IDX2_ok==i));%original
+if NCl>1
+    [~,x2] = sort(IDX2);%cluster de SCE
+    a = find (IDX2(x2)>NCl,1, 'first')-1;
+    x2=x2(1:a);
+    MSort_ok = M(x2,x2);
+    IDX2_ok = IDX2(x2);
+    NRacetmp=NRaceOK;
+    s = silh(MSort_ok, IDX2_ok);
+    
+    sClOK = zeros(1,NCl);
+    for i = 1:NCl
+        sClOK(i) = median(s(IDX2_ok==i));%original
+    end
+    mean_sClOK = mean(sClOK);
+else
+    mean_sClOK = 'NA';
 end
-mean_sClOK=mean(sClOK);
 %%
 
 if savefig==1 &&  NClOK>1
@@ -124,7 +128,8 @@ if NCl ==0
      assemblyortho= cell(0);
      assemblystat= cell(0);
 end
-disp(['NCl: ' num2str(NCl)])  
+% disp(['NCl: ' num2str(NCl)])
+%fprintf('NCl final: %d ;' , NCl)
 % ncluster(sce_n_cells_threshold)=NCl;
 
 %write all data in excel

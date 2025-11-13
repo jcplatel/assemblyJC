@@ -106,6 +106,12 @@ assemblyortho = C0;
 %% Assign RACE to groups of cells
 
 NCl = length(C0);
+if NCl==0
+     assemblyortho= cell(0);
+     assemblystat= cell(0);
+     NClOK=0;
+    return
+end
 % [NCell,NRace] = size(Race);
 
 % Cell count in each cluster

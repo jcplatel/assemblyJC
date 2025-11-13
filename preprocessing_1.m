@@ -1,7 +1,7 @@
 %% Load settings
 MinPeakDistancesce=5 ;% 5 default
 MinPeakDistance=3;% 3 default
-threshold_peak=3;
+threshold_peak=2.576;% 3 default
 % sampling_rate=10;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
 synchronous_frames=1; %2 default
@@ -22,8 +22,8 @@ Tr1b=double(F);
 % end
 speedsm =smoothdata(speed,'gaussian',50);
 [NCell,Nz] = size(Tr1b);
-disp (['Ncells= ' num2str(NCell)])
-
+% disp (['Ncells= ' num2str(NCell)])
+fprintf('Ncells= %d ;' , NCell)
 % median normalize
 
 % disp('median normalization')
@@ -68,8 +68,6 @@ minithreshold=0.1;
 for i=1:NCell    
     th(i)=threshold_peak*std(Tr1b(i,WinRest));%2.576=99% 3=99.7 , 3.291=99.9
     [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakProminence',th(i) ,'MinPeakDistance',MinPeakDistance);
-
-    
     %%remove highest peak???
     valeurs_identiques = intersect (locs,WinActive);
     [locs_sans_ide , idx ]=setdiff(locs(:), valeurs_identiques);
@@ -102,16 +100,18 @@ for i=1:Nz-synchronous_frames
     MAct(i) = sum(max(Raster(:,i:i+synchronous_frames),[],2));
 end
 
-
-disp(['Sum transient: ' num2str(sum(MAct))])
+% disp(['Sum transient: ' num2str(sum(MAct))])
+fprintf ('Sum transient: %d ;' , sum(MAct))
 [pks,TRace] = findpeaks(MAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',MinPeakDistancesce);
 
 NRace = length(TRace);
 
-disp(['nSCE: '  num2str(NRace)])
+% disp(['nSCE: '  num2str(NRace)])
+fprintf ('nSCE: %d ;' , NRace)
 
 % Create Race = cells that participate in SCE 
-Race = zeros(NCell,NRace);
+% Race = zeros(NCell,NRace);
+Race = false(NCell, NRace);
 RasterRace = zeros(NCell,Nz);
 for i = 1:NRace
     Race(:,i) = max(Raster(:,TRace(i)-1:TRace(i)+2),[],2);    %maybe this window can be optimized ???

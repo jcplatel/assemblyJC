@@ -7,17 +7,13 @@ if ~exist ('NClini','var')
     NClini=0;
 end
 %Race=gpuArray(Race);
-[IDX2,sCl,M,S,NClini] = kmeansopttest(Race,kmean_iter,'var',NClini);%increase to 50,  100 ?    
+[IDX2,sCl,M,S,NClini] = kmeansoptnew(Race,kmean_iter,'var',NClini);%increase to 50,  100 ?    
 % M = CovarM(Race);
 % IDX2 = kmedoids(M,NCl);
-NCl = max(IDX2);
+% NCl = max(IDX2);
+NCl = NClini;
 [~,x2] = sort(IDX2);%cluster de SCE
 MSort = M(x2,x2);
-% disp(['nClusters: '  num2str(NCl)])
-fprintf('nClusters: %d ' , NCl)
-
-%% Save Clusters
- %save([namefull,'Clusters.mat'],'IDX2')   % liste de tous les SCE et dans quel cluster ils sont
     
 %% Remove cluster non-statistically significant: basically do some sce permutation 
 % and some clustering with the same number of cluster and if the best silhouette
@@ -27,16 +23,16 @@ fprintf('nClusters: %d ' , NCl)
 % kmeans_surrogate=500; %or more...
 sClrnd = zeros(1,kmeans_surrogate);
 cRace = parallel.pool.Constant(Race);
-parfor i = 1:kmeans_surrogate  
-    sClrnd(i) = kmeansoptrnd(cRace.Value,10,NCl); 
-end
 
+parfor i = 1:kmeans_surrogate  
+    sClrnd(i) = kmeansoptrndnew(cRace.Value,kmeans_rnd_iter,NCl);
+end
 
 %NClOK = sum(sCl>max(sClrnd));
 NClOK =sum(sCl>prctile(sClrnd,95)); %use max, use 99%  ?
 sClOK = sCl(1:NClOK)';
-disp(['nClustersOK: ' num2str(NClOK)])
-fprintf('nClusters: %d ' , NCl)
+% disp(['nClustersOK: ' num2str(NClOK)])
+%fprintf('nClustersOK: %d ;' , NClOK)
 
 %%%new add
 %Race clusters
@@ -84,18 +80,56 @@ else
 end
 
 %% recalcul silhouette cluster finaux
-[~,x2] = sort(IDX2);%cluster de SCE
-a = find (IDX2(x2)>NCl,1, 'first')-1;
-x2=x2(1:a);
-MSort_ok = M(x2,x2);
-IDX2_ok = IDX2(x2);
-s = silh(MSort_ok, IDX2_ok);
-
-sClOK = zeros(1,NCl);
-for i = 1:NCl
-    sClOK(i) = median(s(IDX2_ok==i));%original
+if NCl>1
+    [~,x2] = sort(IDX2);%cluster de SCE
+    a = find (IDX2(x2)>NCl,1, 'first')-1;
+    x2=x2(1:a);
+    MSort_ok = M(x2,x2);
+    IDX2_ok = IDX2(x2);
+    NRacetmp=NRaceOK;
+    s = silh(MSort_ok, IDX2_ok);
+    
+    sClOK = zeros(1,NCl);
+    for i = 1:NCl
+        sClOK(i) = median(s(IDX2_ok==i));%original
+    end
+    mean_sClOK = mean(sClOK);
+else
+    mean_sClOK = 'NA';
 end
-mean_sClOK=mean(sClOK);
+%
+
+if NCl>1
+    % Crée un objet d'évaluation pour le critère de Calinski-Harabasz 
+    eva_ch = evalclusters(RaceOK, IDX2_ok, 'CalinskiHarabasz'); 
+    
+    % La valeur de l'indice est stockée dans la propriété CriterionValues 
+    indice_ch = eva_ch.CriterionValues; 
+    
+    disp(['Indice de Calinski-Harabasz : ', num2str(indice_ch)]); 
+
+    % Crée un objet d'évaluation pour le critère de Davies-Bouldin 
+    eva_db = evalclusters(RaceOK, IDX2_ok, 'DaviesBouldin'); 
+    
+    % La valeur de l'indice est stockée dans la propriété CriterionValues 
+    indice_db = eva_db.CriterionValues; 
+    
+    disp(['Indice de Davies-Bouldin : ', num2str(indice_db)]); 
+
+    % MSort_ok est votre matrice de distance
+% IDX2_ok est le vecteur avec les indices de cluster pour chaque point
+
+% Crée un objet d'évaluation pour le critère de silhouette
+% 'Distance', 'precomputed' indique que le premier argument est une matrice de distance
+eva_s = evalclusters(MSort_ok, IDX2_ok, 'silhouette', 'Distance', 'precomputed');
+
+% Le score de silhouette moyen pour la partition est dans la propriété CriterionValues
+score_silhouette_moyen = eva_s.CriterionValues;
+
+disp(['Score de silhouette moyen (via evalclusters) : ', num2str(score_silhouette_moyen)]);
+
+
+end
 %%
 
 if savefig==1 &&  NClOK>1
@@ -124,7 +158,8 @@ if NCl ==0
      assemblyortho= cell(0);
      assemblystat= cell(0);
 end
-disp(['NCl: ' num2str(NCl)])  
+% disp(['NCl: ' num2str(NCl)])
+%fprintf('NCl final: %d ;' , NCl)
 % ncluster(sce_n_cells_threshold)=NCl;
 
 %write all data in excel
