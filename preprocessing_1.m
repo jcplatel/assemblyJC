@@ -1,14 +1,14 @@
 %% Load settings
 MinPeakDistancesce=5 ;% 5 default
 MinPeakDistance=3;% 3 default
-threshold_peak=2.576;% 3 default
+threshold_peak=3;% 3 default
 % sampling_rate=10;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
-synchronous_frames=1; %2 default
+synchronous_frames=2; %2 default
 % kmean_iter=100;
 % kmeans_surrogate=100;
 percentile=NaN;
-sce_n_cells_threshold = 10;
+sce_n_cells_threshold = 5;
 
 %% Load current data
 
@@ -66,7 +66,9 @@ ampli = cell(1,NCell);
 minithreshold=0.1; 
 
 for i=1:NCell    
-    th(i)=threshold_peak*std(Tr1b(i,WinRest));%2.576=99% 3=99.7 , 3.291=99.9
+    % th(i)=threshold_peak*std(Tr1b(i,WinRest));%2.576=99% 3=99.7 , 3.291=99.9
+    mad_trace = mad(Tr1b(i, WinRest), 1); % '1' pour centrer sur la médiane
+    th(i) = threshold_peak * mad_trace * 1.4826; % Le facteur 1.4826 normalise le MAD pour le rendre comparable à l'écart-type
     [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakProminence',th(i) ,'MinPeakDistance',MinPeakDistance);
     %%remove highest peak???
     valeurs_identiques = intersect (locs,WinActive);
@@ -80,20 +82,21 @@ for i = 1:NCell
     if Acttmp2{i}>0
         Raster(i,Acttmp2{i}) = 1;           %Raster = real raster of cell activity
     end
-    % plot(MovT,Tr1b(i,:)+i-1)
-    % hold on
-    % plot(MovT(Acttmp2{i}),Tr1b(i,Acttmp2{i})+i-1,'.r')
 end
 % % 
 % % Sum activity over n (synchronous_frames ) consecutive frames
 %remove too high synchrony
 SumAct=sum(Raster,1);
 [pks,locs] = findpeaks(SumAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',MinPeakDistancesce);
-TF = isoutlier(pks,"percentiles",[0 95]);
-sum(TF);
-idx=find(TF==1);
-Raster (:,locs(idx))=0;
 
+absolute_threshold = 50; 
+TF_relative = isoutlier(pks, "percentiles", [0 95]);
+TF_absolute = pks > absolute_threshold;
+TF_combined = TF_relative & TF_absolute;
+idx_to_remove = find(TF_combined);
+if ~isempty(idx_to_remove)
+    Raster(:, locs(idx_to_remove)) = 0;
+end
 
 MAct = zeros(1,Nz-synchronous_frames);          %MAct= Sum active cells 
 for i=1:Nz-synchronous_frames
@@ -117,4 +120,3 @@ for i = 1:NRace
     Race(:,i) = max(Raster(:,TRace(i)-1:TRace(i)+2),[],2);    %maybe this window can be optimized ???
     RasterRace(Race(:,i)==1,TRace(i)) = 1;                          %Raster with only activity in SCE time: all frames
 end
-toc

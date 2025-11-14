@@ -4,7 +4,7 @@ MinPeakDistance=3;% 3 default
 threshold_peak=3;% 3 default
 % sampling_rate=10;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
-synchronous_frames=2; %2 default
+synchronous_frames=1; %2 default
 % kmean_iter=100;
 % kmeans_surrogate=100;
 percentile=NaN;
@@ -66,7 +66,9 @@ ampli = cell(1,NCell);
 minithreshold=0.1; 
 
 for i=1:NCell    
-    th(i)=threshold_peak*std(Tr1b(i,WinRest));%2.576=99% 3=99.7 , 3.291=99.9
+    % th(i)=threshold_peak*std(Tr1b(i,WinRest));%2.576=99% 3=99.7 , 3.291=99.9
+    mad_trace = mad(Tr1b(i, WinRest), 1); % '1' pour centrer sur la médiane
+    th(i) = threshold_peak * mad_trace * 1.4826; % Le facteur 1.4826 normalise le MAD pour le rendre comparable à l'écart-type
     [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakProminence',th(i) ,'MinPeakDistance',MinPeakDistance);
     %%remove highest peak???
     valeurs_identiques = intersect (locs,WinActive);
@@ -84,6 +86,14 @@ end
 % % 
 % % Sum activity over n (synchronous_frames ) consecutive frames
 %remove too high synchrony
+nombre_transients_par_cellule = cellfun(@length, Acttmp2);
+seuil_frequence = prctile(nombre_transients_par_cellule, 98);
+cellules_hyperactives_idx = find(nombre_transients_par_cellule > seuil_frequence);
+if ~isempty(cellules_hyperactives_idx)
+    % fprintf('%d cellules hyperactives neutralisées (leur activité est mise à zéro dans le Raster).\n', length(cellules_hyperactives_idx));
+    Raster(cellules_hyperactives_idx, :) = 0;        % Pour chaque cellule hyperactive identifiée, mettez toute sa ligne dans le Raster à zéro
+end
+
 SumAct=sum(Raster,1);
 [pks,locs] = findpeaks(SumAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',MinPeakDistancesce);
 
@@ -115,6 +125,7 @@ fprintf ('nSCE: %d ;' , NRace)
 Race = false(NCell, NRace);
 RasterRace = zeros(NCell,Nz);
 for i = 1:NRace
-    Race(:,i) = max(Raster(:,TRace(i)-1:TRace(i)+2),[],2);    %maybe this window can be optimized ???
+    % Race(:,i) = max(Raster(:,TRace(i)-1:TRace(i)+2),[],2);    %maybe this window can be optimized ???
+     Race(:,i) = max(Raster(:,TRace(i)-2:TRace(i)+3),[],2);  
     RasterRace(Race(:,i)==1,TRace(i)) = 1;                          %Raster with only activity in SCE time: all frames
 end

@@ -33,7 +33,6 @@ IDX = IDX';
 s = silh(M,IDX);                %calculate silhouette of this best clustering with a value by SCE
 sCl = zeros(1,NCl);
 for i = 1:NCl
-    sCl(i) = median(s(IDX==i));    %original     %calculate silhouette for each cluster
-
+    sCl(i) = mean(s(IDX==i));    %original     %calculate silhouette for each cluster
 end
 sCl = max(sCl);         

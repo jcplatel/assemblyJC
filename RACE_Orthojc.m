@@ -91,7 +91,7 @@ end
 C0 = cell(0); % Initialize cell array to store clusters
 k = 0;
 for i = 1:NCl
-    if length(find(CellCl(i,:)))>9 % limit of cell per assembly , was at 5
+    if length(find(CellCl(i,:)))>5 % limit of cell per assembly , was at 5
         k = k+1;
         C0{k} = find(CellCl(i,:));
     end

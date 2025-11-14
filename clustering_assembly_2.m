@@ -29,7 +29,7 @@ parfor i = 1:kmeans_surrogate
 end
 
 %NClOK = sum(sCl>max(sClrnd));
-NClOK =sum(sCl>prctile(sClrnd,95)); %use max, use 99%  ?
+NClOK =sum(sCl>prctile(sClrnd,90)); %use max, use 99%  ?
 sClOK = sCl(1:NClOK)';
 % disp(['nClustersOK: ' num2str(NClOK)])
 %fprintf('nClustersOK: %d ;' , NClOK)
@@ -99,36 +99,37 @@ else
 end
 %
 
-% if NCl>1
-%     % Crée un objet d'évaluation pour le critère de Calinski-Harabasz 
-%     eva_ch = evalclusters(RaceOK, IDX2_ok, 'CalinskiHarabasz'); 
-% 
-%     % La valeur de l'indice est stockée dans la propriété CriterionValues 
-%     indice_ch = eva_ch.CriterionValues; 
-% 
-%     disp(['Indice de Calinski-Harabasz : ', num2str(indice_ch)]); 
-% 
-%     % Crée un objet d'évaluation pour le critère de Davies-Bouldin 
-%     eva_db = evalclusters(RaceOK, IDX2_ok, 'DaviesBouldin'); 
-% 
-%     % La valeur de l'indice est stockée dans la propriété CriterionValues 
-%     indice_db = eva_db.CriterionValues; 
-% 
-%     disp(['Indice de Davies-Bouldin : ', num2str(indice_db)]); 
-% 
-%         % MSort_ok est votre matrice de distance
-%     % IDX2_ok est le vecteur avec les indices de cluster pour chaque point
-% 
-%     % Crée un objet d'évaluation pour le critère de silhouette
-%     % 'Distance', 'precomputed' indique que le premier argument est une matrice de distance
-%     eva_s = evalclusters(MSort_ok, IDX2_ok, 'silhouette', 'Distance', 'precomputed');
-% 
-%     % Le score de silhouette moyen pour la partition est dans la propriété CriterionValues
-%     score_silhouette_moyen = eva_s.CriterionValues;
-% 
-%     disp(['Score de silhouette moyen (via evalclusters) : ', num2str(score_silhouette_moyen)]);
-% 
-% end
+if NCl>1
+    % Crée un objet d'évaluation pour le critère de Calinski-Harabasz 
+    %Race_numeric = double(Race');
+    eva_ch = evalclusters(M, IDX2', 'CalinskiHarabasz'); 
+
+    % La valeur de l'indice est stockée dans la propriété CriterionValues 
+    indice_ch = eva_ch.CriterionValues; 
+
+    %disp(['Indice de Calinski-Harabasz : ', num2str(indice_ch)]); 
+
+    % Crée un objet d'évaluation pour le critère de Davies-Bouldin 
+    eva_db = evalclusters(M, IDX2', 'DaviesBouldin'); 
+
+    % La valeur de l'indice est stockée dans la propriété CriterionValues 
+    indice_db = eva_db.CriterionValues; 
+
+    %disp(['Indice de Davies-Bouldin : ', num2str(indice_db)]); 
+
+        % MSort_ok est votre matrice de distance
+    % IDX2_ok est le vecteur avec les indices de cluster pour chaque point
+
+    % Crée un objet d'évaluation pour le critère de silhouette
+    % 'Distance', 'precomputed' indique que le premier argument est une matrice de distance
+    eva_s = evalclusters(M, IDX2', 'silhouette');
+
+    % Le score de silhouette moyen pour la partition est dans la propriété CriterionValues
+    score_silhouette_moyen = eva_s.CriterionValues;
+
+    %disp(['Score de silhouette moyen (via evalclusters) : ', num2str(score_silhouette_moyen)]);
+
+end
 %%
 
 if savefig==1 &&  NClOK>1
