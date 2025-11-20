@@ -1,6 +1,6 @@
 
 %% Clustering
-
+assemblyraw = [];
 [NCell,NRace] = size(Race);
 % NClini=10;
 if ~exist ('NClini','var')
@@ -29,13 +29,13 @@ parfor i = 1:kmeans_surrogate
 end
 
 %NClOK = sum(sCl>max(sClrnd));
-NClOK =sum(sCl>prctile(sClrnd,90)); %use max, use 99%  ?
+NClOK =sum(sCl>prctile(sClrnd,95)); %use max, use 99%  ?
 sClOK = sCl(1:NClOK)';
 % disp(['nClustersOK: ' num2str(NClOK)])
 %fprintf('nClustersOK: %d ;' , NClOK)
 
 %%%new add
-%Race clusters
+% %Race clusters
 % R = cell(0);        % which sce for each cluster
 % CellScore = zeros(NCell,NClOK);  % number of time a cell participate in a sce of a given cluster
 % CellScoreN = zeros(NCell,NClOK);
@@ -52,10 +52,10 @@ sClOK = sCl(1:NClOK)';
 % %export this raw CellCl  
 % CellCl(max(CellScore,[],2)<2) = 0;
 % [X1,x1] = sort(CellCl);
-% 
-% %write list of cells in each cluster
-% 
-assemblyraw= cell(0);
+% % 
+% % %write list of cells in each cluster
+% % 
+% assemblyraw= cell(0);
 % k = 0;
 % for i = 1:NCl
 %     k = k+1;
@@ -70,13 +70,13 @@ NRaceOK = size(RaceOK,2);
 
 
 if NClOK>1
-     RACE_Orthojc
+     RACE_Orthojcnew
      %%call rasterplot here
 else
     NCl=NClOK;
-     assemblyortho= cell(0);
-     assemblystat= cell(0);
-   % assemblyraw=[]
+    assemblyortho= cell(0);
+    assemblystat= cell(0);
+    assemblyraw = [];
 end
 
 %% recalcul silhouette cluster finaux
@@ -99,37 +99,37 @@ else
 end
 %
 
-if NCl>1
-    % Crée un objet d'évaluation pour le critère de Calinski-Harabasz 
-    %Race_numeric = double(Race');
-    eva_ch = evalclusters(M, IDX2', 'CalinskiHarabasz'); 
-
-    % La valeur de l'indice est stockée dans la propriété CriterionValues 
-    indice_ch = eva_ch.CriterionValues; 
-
-    %disp(['Indice de Calinski-Harabasz : ', num2str(indice_ch)]); 
-
-    % Crée un objet d'évaluation pour le critère de Davies-Bouldin 
-    eva_db = evalclusters(M, IDX2', 'DaviesBouldin'); 
-
-    % La valeur de l'indice est stockée dans la propriété CriterionValues 
-    indice_db = eva_db.CriterionValues; 
-
-    %disp(['Indice de Davies-Bouldin : ', num2str(indice_db)]); 
-
-        % MSort_ok est votre matrice de distance
-    % IDX2_ok est le vecteur avec les indices de cluster pour chaque point
-
-    % Crée un objet d'évaluation pour le critère de silhouette
-    % 'Distance', 'precomputed' indique que le premier argument est une matrice de distance
-    eva_s = evalclusters(M, IDX2', 'silhouette');
-
-    % Le score de silhouette moyen pour la partition est dans la propriété CriterionValues
-    score_silhouette_moyen = eva_s.CriterionValues;
-
-    %disp(['Score de silhouette moyen (via evalclusters) : ', num2str(score_silhouette_moyen)]);
-
-end
+% if NCl>1
+%     % Crée un objet d'évaluation pour le critère de Calinski-Harabasz 
+%     %Race_numeric = double(Race');
+%     eva_ch = evalclusters(M, IDX2', 'CalinskiHarabasz'); 
+% 
+%     % La valeur de l'indice est stockée dans la propriété CriterionValues 
+%     indice_ch = eva_ch.CriterionValues; 
+% 
+%     %disp(['Indice de Calinski-Harabasz : ', num2str(indice_ch)]); 
+% 
+%     % Crée un objet d'évaluation pour le critère de Davies-Bouldin 
+%     eva_db = evalclusters(M, IDX2', 'DaviesBouldin'); 
+% 
+%     % La valeur de l'indice est stockée dans la propriété CriterionValues 
+%     indice_db = eva_db.CriterionValues; 
+% 
+%     %disp(['Indice de Davies-Bouldin : ', num2str(indice_db)]); 
+% 
+%         % MSort_ok est votre matrice de distance
+%     % IDX2_ok est le vecteur avec les indices de cluster pour chaque point
+% 
+%     % Crée un objet d'évaluation pour le critère de silhouette
+%     % 'Distance', 'precomputed' indique que le premier argument est une matrice de distance
+%     eva_s = evalclusters(M, IDX2', 'silhouette');
+% 
+%     % Le score de silhouette moyen pour la partition est dans la propriété CriterionValues
+%     score_silhouette_moyen = eva_s.CriterionValues;
+% 
+%     %disp(['Score de silhouette moyen (via evalclusters) : ', num2str(score_silhouette_moyen)]);
+% 
+% end
 %%
 
 if savefig==1 &&  NClOK>1

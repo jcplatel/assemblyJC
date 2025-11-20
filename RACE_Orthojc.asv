@@ -8,7 +8,7 @@
 
 [NCell,NRace] = size(Race);
 NCl = NClOK;
-NShuf = 1000;
+NShuf = 5000;
 
 %% Statistiscal definition of cell assemblies
 
@@ -91,12 +91,13 @@ end
 C0 = cell(0); % Initialize cell array to store clusters
 k = 0;
 for i = 1:NCl
-    if length(find(CellCl(i,:)))>9 % limit of cell per assembly , was at 5
+    if length(find(CellCl(i,:)))>5 % limit of cell per assembly , was at 5
         k = k+1;
         C0{k} = find(CellCl(i,:));
     end
 end
 assemblyortho = C0;
+assemblystat = C0;
 % save([namefull 'assemblyortho'],'assemblyortho')%
 
 % Participation rate to its own cluster
@@ -106,7 +107,13 @@ assemblyortho = C0;
 %% Assign RACE to groups of cells
 
 NCl = length(C0);
-[NCell,NRace] = size(Race);
+if NCl==0
+     assemblyortho = cell(0);
+     assemblystat = cell(0);
+     NClOK=0;
+    return
+end
+% [NCell,NRace] = size(Race);
 
 % Cell count in each cluster
 RCl = zeros(NCl,NRace);
@@ -161,16 +168,16 @@ end
 
 %% Show Sorted Rasterplot
 
-[NCell,NRace] = size(Race);
-NCl = length(C0);
+% [NCell,NRace] = size(Race);
+% NCl = length(C0);
 
 % Recreate CellCl (equivalent of RCl for the cells)
-CellCl = zeros(NCl,NCell);
-for i = 1:NCl
-    CellCl(i,C0{i}) = 1;
-end
-
-NCl = length(C0);
+% CellCl = zeros(NCl,NCell);
+% for i = 1:NCl
+%     CellCl(i,C0{i}) = 1;
+% end
+% 
+% NCl = length(C0);
 
 Cl0 = find(sum(PCl,1) == 0);% statistically no sce
 Cl1 = find(sum(PCl,1) == 1);% only 1 assembly
@@ -200,6 +207,6 @@ keepAsm = sum(PCl,2) > 0;
 assemblyortho = assemblyortho(keepAsm);
 NCl           = sum(keepAsm);
 % Créez une version filtrée de CellCl en utilisant le masque keepAsm
-CellCl_final = CellCl(keepAsm,:);
+CellCl_final = double(CellCl(keepAsm,:));
 % Trie les cellules en fonction de l'appartenance aux assemblées finales
 [X1,x1] = sort(Bin(1:NCl)*CellCl_final);

@@ -4,7 +4,7 @@ MinPeakDistance=3;% 3 default
 threshold_peak=3;% 3 default
 % sampling_rate=10;
 synchronous_frames=round(0.2*sampling_rate,0); %200ms *sampling rate
-synchronous_frames=1; %2 default
+synchronous_frames=2; %2 default
 % kmean_iter=100;
 % kmeans_surrogate=100;
 percentile=NaN;
@@ -97,7 +97,7 @@ end
 SumAct=sum(Raster,1);
 [pks,locs] = findpeaks(SumAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',MinPeakDistancesce);
 
-absolute_threshold = 50; 
+absolute_threshold = 50; %ou 80 ou 100 ??
 TF_relative = isoutlier(pks, "percentiles", [0 95]);
 TF_absolute = pks > absolute_threshold;
 TF_combined = TF_relative & TF_absolute;
@@ -125,7 +125,7 @@ fprintf ('nSCE: %d ;' , NRace)
 Race = false(NCell, NRace);
 RasterRace = zeros(NCell,Nz);
 for i = 1:NRace
-    % Race(:,i) = max(Raster(:,TRace(i)-1:TRace(i)+2),[],2);    %maybe this window can be optimized ???
-     Race(:,i) = max(Raster(:,TRace(i)-2:TRace(i)+3),[],2);  
+    Race(:,i) = max(Raster(:,TRace(i)-1:TRace(i)+2),[],2);    %maybe this window can be optimized ???
+     % Race(:,i) = max(Raster(:,TRace(i)-2:TRace(i)+3),[],2);  
     RasterRace(Race(:,i)==1,TRace(i)) = 1;                          %Raster with only activity in SCE time: all frames
 end

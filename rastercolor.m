@@ -1,5 +1,6 @@
 %new raster 
 assembly=assemblyortho;
+% assembly=assemblyraw;
 
 colors = [
     1 0 0;     % Red 
@@ -22,7 +23,7 @@ colors = [
     0 0.75 0.75; % Dark Cyan
 ];
 % Cl_order = [ Cl1  Cl2 Cl3 Cl4];
-Cl_order = [Cl0 Cl1 Cl2 Cl3 Cl4];
+Cl_order = [Cl0 Cl1 Cl2 Cl3];
 Race_ordered=Race(x1,Cl_order);
 
 % fig = figure('visible','on');
@@ -39,32 +40,7 @@ for n=1:NCl
     cell_id(1,cell2mat(assembly(n))) = n;
 end
 cell_id=cell_id(x1);
-% 
-% hold on
-% for n = 1:NCell
-%     for y=1:size(Race_ordered,2)
-%         if Race_ordered(n,y)>0
-%             rectangle('Position',[y,n, 1,1],'FaceColor',colors(cell_id(n),:),'EdgeColor',colors(cell_id(n),:),'LineWidth',0.5)
-%         end
-%     end
-% end
-% 
-% axis ij
-% axis tight
-% set(ax, 'XColor', 'w');
-% set(ax, 'YColor', 'w');
-% set(ax, 'Color', 'k');
-% xlabel('sorted SCE #')     %was RACE
-% ylabel('sorted Cell #')
-% 
-% hold off
-% namegraph=strcat(namefull,['rasterall' , '.png']);
-% 
-% if isfolder(namefull)
-%     exportgraphics(gcf,namegraph,'Resolution',150,'BackgroundColor','black')
-%     close gcf
-% end
-% toc
+
 %%
 % Construire une matrice de couleurs RGB selon Race_ordered et cell_id
 img = zeros(NCell, size(Race_ordered,2), 3);

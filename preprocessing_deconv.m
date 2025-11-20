@@ -13,7 +13,7 @@ sce_n_cells_threshold = 5;
 %% Load current data
 
 % Tr1b=double(F(iscell(:,1)>0,:));
-Tr1b=double(F);
+Tr1b=double(spks);
 % clear F
 % Tr1b=F(colorcell<7,:);
 % if mean(Tr1b,"all")>10000
@@ -29,7 +29,7 @@ fprintf('Ncells= %d ;' , NCell)
 % disp('median normalization')
 
 %bleaching correction
-Tr1b = sgolayfilt(Tr1b',3,9)';
+%Tr1b = sgolayfilt(Tr1b',3,9)';
 % ws = warning('off','MATLAB:polyfit:RepeatedPointsOrRescale');
 % for i=1:NCell
 %     p0=polyfit(1:Nz,Tr1b(i,:),3);
@@ -37,22 +37,23 @@ Tr1b = sgolayfilt(Tr1b',3,9)';
 % end
 % warning(ws)%% preprocessing
 
-window_size = 2000; % Largeur de la fenêtre en points temporels
-percentile_value=5;
-num_blocks = ceil(Nz / window_size);
-for n=1:NCell
-    trace=Tr1b(n,:);
-    F0 = nan(Nz, 1);
-    % Calcul du percentile bloc par bloc
-    for i = 1:num_blocks
-        start_idx = (i-1) * window_size + 1;
-        end_idx = min(i * window_size, Nz);
-        F0(start_idx:end_idx) = prctile(trace(start_idx:end_idx), percentile_value);
-    end
-    F0 = movmedian(F0, window_size, 'omitnan');
-    F0 = smoothdata (F0,1,"gaussian",window_size/2);
-    Tr1b(n,:)=(trace-F0')./F0';
-end
+% window_size = 2000; % Largeur de la fenêtre en points temporels
+% percentile_value=5;
+% num_blocks = ceil(Nz / window_size);
+% for n=1:NCell
+%     trace=Tr1b(n,:);
+%     F0 = nan(Nz, 1);
+%     % Calcul du percentile bloc par bloc
+%     for i = 1:num_blocks
+%         start_idx = (i-1) * window_size + 1;
+%         end_idx = min(i * window_size, Nz);
+%         F0(start_idx:end_idx) = prctile(trace(start_idx:end_idx), percentile_value);
+%     end
+%     F0 = movmedian(F0, window_size, 'omitnan');
+%     F0 = smoothdata (F0,1,"gaussian",window_size/2);
+%     Tr1b(n,:)=(trace-F0')./F0';
+% end
+
 
 % %refine only for speed<2
 WinRest=find(speedsm<=2);
@@ -65,31 +66,46 @@ Acttmp2 = cell(1,NCell);
 ampli = cell(1,NCell);
 minithreshold=0.1; 
 
-parfor i=1:NCell    
-    % th(i)=threshold_peak*std(Tr1b(i,WinRest));%2.576=99% 3=99.7 , 3.291=99.9
-    mad_trace = mad(Tr1b(i, WinRest), 1); % '1' pour centrer sur la médiane
-    th(i) = threshold_peak * mad_trace * 1.4826; % Le facteur 1.4826 normalise le MAD pour le rendre comparable à l'écart-type
-    [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakProminence',th(i) ,'MinPeakDistance',MinPeakDistance);
-    %%remove highest peak???
-    valeurs_identiques = intersect (locs,WinActive);
-    [locs_sans_ide , idx ]=setdiff(locs(:), valeurs_identiques);
-    ampli_sans_ide=amplitude(idx);
-    Acttmp2{i}=locs_sans_ide;%%%%%%%%findchangepts(y,MaxNumChanges=10,Statistic="rms")
+for n=1:NCell
+    threshold = 3*std(Tr1b(n,:)); % Valeur à ajuster. Voir la note ci-dessous.
+    % Binariser le signal. 1 si le spike dépasse le seuil, 0 sinon.
+    Raster(n,:) = ( Tr1b(n,:) > threshold ); 
+    Raster(n,WinActive) = 0 ;
 end
 
+% for i=1:NCell    
+%     % th(i)=threshold_peak*std(Tr1b(i,WinRest));%2.576=99% 3=99.7 , 3.291=99.9
+%     mad_trace = mad(Tr1b(i, WinRest), 1); % '1' pour centrer sur la médiane
+%     th(i) = threshold_peak * mad_trace * 1.4826; % Le facteur 1.4826 normalise le MAD pour le rendre comparable à l'écart-type
+%     [amplitude,locs] = findpeaks(Tr1b(i,:),'MinPeakProminence',th(i) ,'MinPeakDistance',MinPeakDistance);
+%     %%remove highest peak???
+%     valeurs_identiques = intersect (locs,WinActive);
+%     [locs_sans_ide , idx ]=setdiff(locs(:), valeurs_identiques);
+%     ampli_sans_ide=amplitude(idx);
+%     Acttmp2{i}=locs_sans_ide;%%%%%%%%findchangepts(y,MaxNumChanges=10,Statistic="rms")
+% end
+
 % %f = figure('visible','off');
-for i = 1:NCell
-    if Acttmp2{i}>0
-        Raster(i,Acttmp2{i}) = 1;           %Raster = real raster of cell activity
-    end
-end
+% for i = 1:NCell
+%     if Acttmp2{i}>0
+%         Raster(i,Acttmp2{i}) = 1;           %Raster = real raster of cell activity
+%     end
+% end
 % % 
 % % Sum activity over n (synchronous_frames ) consecutive frames
 %remove too high synchrony
+% nombre_transients_par_cellule = cellfun(@length, Acttmp2);
+% seuil_frequence = prctile(nombre_transients_par_cellule, 98);
+% cellules_hyperactives_idx = find(nombre_transients_par_cellule > seuil_frequence);
+% if ~isempty(cellules_hyperactives_idx)
+%     % fprintf('%d cellules hyperactives neutralisées (leur activité est mise à zéro dans le Raster).\n', length(cellules_hyperactives_idx));
+%     Raster(cellules_hyperactives_idx, :) = 0;        % Pour chaque cellule hyperactive identifiée, mettez toute sa ligne dans le Raster à zéro
+% end
+
 SumAct=sum(Raster,1);
 [pks,locs] = findpeaks(SumAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',MinPeakDistancesce);
 
-absolute_threshold = 50; 
+absolute_threshold = 50; %ou 80 ou 100 ??
 TF_relative = isoutlier(pks, "percentiles", [0 95]);
 TF_absolute = pks > absolute_threshold;
 TF_combined = TF_relative & TF_absolute;
@@ -118,5 +134,6 @@ Race = false(NCell, NRace);
 RasterRace = zeros(NCell,Nz);
 for i = 1:NRace
     Race(:,i) = max(Raster(:,TRace(i)-1:TRace(i)+2),[],2);    %maybe this window can be optimized ???
+     % Race(:,i) = max(Raster(:,TRace(i)-2:TRace(i)+3),[],2);  
     RasterRace(Race(:,i)==1,TRace(i)) = 1;                          %Raster with only activity in SCE time: all frames
 end

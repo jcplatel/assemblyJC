@@ -1,0 +1,156 @@
+% SCRIPT DE GÉNÉRATION D'ASSEMBLÉES CANDIDATES
+% Approche avec seuil statistique relaxé pour maximiser la détection
+% en vue d'un test biologique en aval (analyse clonale).
+% =================================================================
+
+% --- Chargement des données et initialisation ---
+% load('Race.mat')
+% load('Clusters.mat')
+% load('NClustersOK.mat')
+% load('TRace')
+[NCell, NRace] = size(Race);
+NCl = NClOK;
+NShuf = 5000; % 5000 permutations, un bon compromis vitesse/précision
+P_VAL_THRESHOLD = 0.05; % Seuil de p-valeur non corrigé et généreux
+
+%fprintf('Début de la génération d''assemblées candidates avec p < %.2f\n', P_VAL_THRESHOLD);
+
+%% Étape 1 : Calcul des p-valeurs pour l'association Cellule-Cluster
+
+% --- Préparation des données ---
+CellP = zeros(NCell, NCl);
+CellR = zeros(NCell, NCl);
+for i = 1:NCl
+    CellP(:, i) = sum(Race(:, IDX2 == i), 2);
+    CellR(:, i) = CellP(:, i) / sum(IDX2 == i);
+end
+
+cRace   = parallel.pool.Constant(Race);
+maskCl = cell(1, NCl);
+for i = 1:NCl, maskCl{i} = (IDX2 == i); end
+cMaskCl = parallel.pool.Constant(maskCl);
+cCellP  = parallel.pool.Constant(CellP);
+
+% --- Test par permutation pour chaque cellule ---
+pValues_cells = ones(NCell, NCl);
+%fprintf('Analyse de l''association cellule-cluster...\n');
+parfor j = 1:NCell
+    RaceLoc   = cRace.Value;
+    maskClLoc = cMaskCl.Value;
+    CellPLoc  = cCellP.Value;
+    Nrnd = sum(RaceLoc(j, :));
+    
+    if Nrnd == 0, continue; end
+    
+    RClr = zeros(NCl, NShuf, 'uint16');
+    for l = 1:NShuf
+        randIdx = randperm(size(RaceLoc, 2), Nrnd);
+        for i = 1:NCl
+            RClr(i, l) = sum(maskClLoc{i}(randIdx));
+        end
+    end
+    
+    observed_counts = CellPLoc(j, :)';
+    pValues_cells(j, :) = (sum(RClr >= observed_counts, 2) + 1)' ./ (NShuf + 1);
+end
+
+%%% MODIFICATION STRATÉGIE CANDIDATS %%%
+% Au lieu d'une correction stricte (FDR/Bonferroni), on applique un seuil
+% simple pour inclure toutes les associations plausibles.
+%fprintf('Filtrage des cellules candidates avec p < %.2f\n', P_VAL_THRESHOLD);
+CellCl = uint16((pValues_cells <= P_VAL_THRESHOLD)');
+%%% FIN MODIFICATION %%%
+
+
+%% Étape 2 : Formation des assemblées candidates
+
+CellClraw = CellCl;
+A2 = find(sum(CellCl,1) >= 2); % Cellules appartenant à plusieurs clusters
+
+% Pour les cellules multi-clusters, on les assigne à celui où leur participation est maximale
+for i = A2
+    [~, idx] = max(CellR(i, :));
+    CellCl(:, i) = 0;
+    CellCl(idx, i) = 1;
+end
+
+% On crée les assemblées candidates en filtrant par taille minimale
+C0 = cell(0);
+k = 0;
+for i = 1:NCl
+    if sum(CellCl(i, :)) > 5 % Seuil de 5 cellules par assemblée, à ajuster si besoin
+        k = k + 1;
+        C0{k} = find(CellCl(i, :));
+    end
+end
+assembly_candidates = C0; % Renommage pour plus de clarté
+%fprintf('%d assemblées candidates générées.\n', length(assembly_candidates));
+
+
+%% Étape 3 : Test d'activation des assemblées par les événements RACE
+
+NCl_candidates = length(assembly_candidates);
+if NCl_candidates == 0
+    %fprintf('Aucune assemblée candidate trouvée. Fin du script.\n');
+    return
+end
+
+RCl = zeros(NCl_candidates, NRace);
+for i = 1:NCl_candidates
+    RCl(i, :) = sum(Race(assembly_candidates{i}, :));
+end
+
+% --- Test par permutation pour chaque événement RACE ---
+cC0   = parallel.pool.Constant(assembly_candidates);
+cRCl  = parallel.pool.Constant(RCl);
+cNrnd = parallel.pool.Constant(sum(Race, 1));
+
+pValues_race = ones(NCl_candidates, NRace);
+RCln = zeros(NCl_candidates, NRace, 'uint16'); % Normalisation, optionnelle
+%fprintf('Analyse de l''activation des assemblées par les RACEs...\n');
+
+parfor j = 1:NRace
+    C0loc   = cC0.Value;
+    RCl_loc = cRCl.Value;
+    Nrnd    = cNrnd.Value(j);
+    NCellLoc = size(Race, 1);
+    
+    temp_p_values = ones(NCl_candidates, 1);
+    if Nrnd > 0
+        RClr = zeros(NCl_candidates, NShuf, 'uint16');
+        for l = 1:NShuf
+            idx = randperm(NCellLoc, Nrnd);
+            for i = 1:NCl_candidates
+                RClr(i, l) = sum(ismember(idx, C0loc{i}));
+            end
+        end
+        observed_counts = RCl_loc(:, j);
+        temp_p_values = (sum(RClr >= observed_counts, 2) + 1) ./ (NShuf + 1);
+    end
+    pValues_race(:, j) = temp_p_values;
+end
+
+%%% MODIFICATION STRATÉGIE CANDIDATS %%%
+% De même, on utilise un seuil non corrigé pour définir les activations significatives.
+%fprintf('Filtrage des activations de RACEs avec p < %.2f\n', P_VAL_THRESHOLD);
+PCl = double(pValues_race <= P_VAL_THRESHOLD);
+%%% FIN MODIFICATION %%%
+
+
+%% Étape 4 : Finalisation et tri (pour visualisation)
+
+% Cette section reste utile pour visualiser les résultats, même si on ne filtre plus.
+% On garde uniquement les assemblées qui ont été activées au moins une fois.
+keepAsm = sum(PCl, 2) > 0;
+assembly_final_candidates = assembly_candidates(keepAsm);
+NCl_final = sum(keepAsm);
+%fprintf('%d assemblées candidates ont au moins une activation significative.\n', NCl_final);
+
+% Le reste du code de tri pour le Rasterplot peut être utilisé ici...
+% Note : Il faut adapter les variables pour qu'elles correspondent aux noms utilisés.
+% Exemple :
+% CellCl_final = double(CellCl(keepAsm,:));
+% ...etc.
+
+%fprintf('Script terminé. La variable "assembly_final_candidates" contient les assemblées à utiliser pour l''analyse clonale.\n');
+

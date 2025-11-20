@@ -8,7 +8,7 @@
 
 [NCell,NRace] = size(Race);
 NCl = NClOK;
-NShuf = 1000;
+NShuf = 5000;
 
 %% Statistiscal definition of cell assemblies
 
@@ -36,7 +36,7 @@ cCellP  = parallel.pool.Constant(CellP);
 
 % Test for statistical significance (for highly active cell and/or clusters with many SCE)
 CellCl = zeros(NCl,NCell, 'uint16'); % Binary matrix of cell associated to clusters
-parfor j = 1:NCell
+for j = 1:NCell
     RaceLoc   = cRace.Value;
     maskClLoc = cMaskCl.Value;
     CellPLoc  = cCellP.Value;
@@ -97,6 +97,7 @@ for i = 1:NCl
     end
 end
 assemblyortho = C0;
+assemblystat = C0;
 % save([namefull 'assemblyortho'],'assemblyortho')%
 
 % Participation rate to its own cluster
@@ -107,8 +108,8 @@ assemblyortho = C0;
 
 NCl = length(C0);
 if NCl==0
-     assemblyortho= cell(0);
-     assemblystat= cell(0);
+     assemblyortho = cell(0);
+     assemblystat = cell(0);
      NClOK=0;
     return
 end
