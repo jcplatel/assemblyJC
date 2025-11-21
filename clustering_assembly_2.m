@@ -23,13 +23,18 @@ MSort = M(x2,x2);
 % kmeans_surrogate=500; %or more...
 sClrnd = zeros(1,kmeans_surrogate);
 cRace = parallel.pool.Constant(Race);
+All_Shuffle_Scores = [];
 
 parfor i = 1:kmeans_surrogate  
-    sClrnd(i) = kmeansoptrndnew(cRace.Value,kmeans_rnd_iter,NCl);
+    % sClrnd(i) = kmeansoptrndnew(cRace.Value,kmeans_rnd_iter,NCl);
+    scores_du_run = kmeansoptrndnew(cRace.Value,kmeans_rnd_iter,NCl);
+    All_Shuffle_Scores = [All_Shuffle_Scores, scores_du_run]; 
 end
 
-%NClOK = sum(sCl>max(sClrnd));
-NClOK =sum(sCl>prctile(sClrnd,95)); %use max, use 99%  ?
+threshold = prctile(All_Shuffle_Scores, 99); 
+NClOK = sum(sCl > threshold);
+% NClOK =sum(sCl>prctile(sClrnd,95)); %use max, use 99%  ?
+
 sClOK = sCl(1:NClOK)';
 % disp(['nClustersOK: ' num2str(NClOK)])
 %fprintf('nClustersOK: %d ;' , NClOK)

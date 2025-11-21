@@ -7,7 +7,7 @@ Ne = size(E,2);
 
 %% Covariance matrix
 if strcmp(type,'var')
-    M = CovarM(E);
+    M = CovarMjc(E);
 end
 
 IDX0=zeros(N,Ne);
@@ -17,14 +17,25 @@ stream = RandStream('mlfg6331_64');  % Random number stream
 options = statset('UseParallel',1,'UseSubstreams',1,...
     'Streams',stream);
 
-IDX = kmeans(M,NCl,'Options',options,"MaxIter",1000,'OnlinePhase','on','Replicates',N); % Kmeans on distance of covariance metric
-IDX = IDX';
-S = median(silh(M,IDX));%original
+% IDX = kmeans(M,NCl,'Options',options,"MaxIter",1000,'OnlinePhase','on','Replicates',N); % Kmeans on distance of covariance metric
+IDX = kmeans(M,NCl,'Options',options,"MaxIter",1000,'Replicates',N); % Kmeans on distance of covariance metric
 
-s = silh(M,IDX);
+IDX = IDX';
+% S = median(silh(M,IDX));%original
+%correction calcul silhouette
+D_square = 1 - M;
+D_square(logical(eye(size(D_square)))) = 0; % Diagonale à 0
+D_square = (D_square + D_square') / 2;      % Symétrie parfaite
+D_vec = squareform(D_square); 
+s = silhouette([], IDX, D_vec);
+S = mean (s);
+% S = mean(silh(M,IDX));%original
+
+% s = silh(M,IDX);
 sCl = zeros(1,NCl);
 for i = 1:NCl
-    sCl(i) = median(s(IDX==i));%original
+    % sCl(i) = median(s(IDX==i));%original
+    sCl(i) = mean(s(IDX==i));
 end
 
 %sort RACE/silhouette of best cluster

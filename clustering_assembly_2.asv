@@ -1,6 +1,6 @@
 
 %% Clustering
-
+assemblyraw = [];
 [NCell,NRace] = size(Race);
 % NClini=10;
 if ~exist ('NClini','var')
@@ -24,8 +24,9 @@ MSort = M(x2,x2);
 sClrnd = zeros(1,kmeans_surrogate);
 cRace = parallel.pool.Constant(Race);
 
-parfor i = 1:kmeans_surrogate  
+for i = 1:kmeans_surrogate  
     sClrnd(i) = kmeansoptrndnew(cRace.Value,kmeans_rnd_iter,NCl);
+    All_Shuffle_Scores = [All_Shuffle_Scores, scores_du_run]; 
 end
 
 %NClOK = sum(sCl>max(sClrnd));
@@ -74,9 +75,9 @@ if NClOK>1
      %%call rasterplot here
 else
     NCl=NClOK;
-     assemblyortho= cell(0);
-     assemblystat= cell(0);
-   % assemblyraw=[]
+    assemblyortho= cell(0);
+    assemblystat= cell(0);
+    assemblyraw = [];
 end
 
 %% recalcul silhouette cluster finaux

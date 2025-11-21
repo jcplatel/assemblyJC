@@ -37,7 +37,7 @@ Tr1b = sgolayfilt(Tr1b',3,9)';
 % end
 % warning(ws)%% preprocessing
 
-window_size = 2000; % Largeur de la fenêtre en points temporels
+window_size = 500; % Largeur de la fenêtre en points temporels
 percentile_value=5;
 num_blocks = ceil(Nz / window_size);
 for n=1:NCell
@@ -89,7 +89,7 @@ end
 SumAct=sum(Raster,1);
 [pks,locs] = findpeaks(SumAct,'MinPeakHeight',sce_n_cells_threshold,'MinPeakDistance',MinPeakDistancesce);
 
-absolute_threshold = 50; 
+absolute_threshold = 100; 
 TF_relative = isoutlier(pks, "percentiles", [0 95]);
 TF_absolute = pks > absolute_threshold;
 TF_combined = TF_relative & TF_absolute;
@@ -117,6 +117,7 @@ fprintf ('nSCE: %d ;' , NRace)
 Race = false(NCell, NRace);
 RasterRace = zeros(NCell,Nz);
 for i = 1:NRace
-    Race(:,i) = max(Raster(:,TRace(i)-1:TRace(i)+2),[],2);    %maybe this window can be optimized ???
+    Race(:,i) = max(Raster(:,TRace(i)-synchronous_frames:TRace(i)+synchronous_frames),[],2);    %maybe this window can be optimized ???
+    % Race(:,i) = max(Raster(:,TRace(i)-1:TRace(i)+2),[],2);    %maybe this window can be optimized ???
     RasterRace(Race(:,i)==1,TRace(i)) = 1;                          %Raster with only activity in SCE time: all frames
 end
