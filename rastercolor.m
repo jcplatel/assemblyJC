@@ -137,7 +137,7 @@ end
 % end
 mask = Race_ordered > 0;
 
-fig = figure('visible','off');
+fig = figure('visible','on');
 set(fig, 'Color', 'k');
 ax = axes('Parent', fig);
 set(ax, 'Color', 'k');
