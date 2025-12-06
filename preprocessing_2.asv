@@ -9,8 +9,48 @@ synchronous_frames=2; %2 default
 % kmeans_surrogate=100;
 percentile=NaN;
 sce_n_cells_threshold = 5;
+%%%%
+
+
+
 
 %% Load current data
+load(strcat(path, 'Fall.mat'), 'ops');
+
+% Récupérer la corrélation calculée par Suite2p (sur images recalées)
+% C'est un vecteur de taille (nFrames x 1)
+frame_corr = double(ops.corrXY); 
+
+% Déterminer un seuil statistique pour identifier les "décrochages" (Z-motion)
+% On prend la médiane (plus robuste que la moyenne) comme ligne de base
+baseline = median(frame_corr);
+
+% On estime l'écart-type du bruit sur la partie stable uniquement
+% (On ignore les chutes brutales pour le calcul de la variance)
+stable_frames = frame_corr(frame_corr > baseline - 0.05); 
+sigma = std(stable_frames);
+
+% Définir le seuil de rejet (ex: 3 ou 4 écarts-types sous la baseline)
+seuil_bad = baseline - 4 * sigma; 
+% Ou un seuil empirique fixe si c'est plus simple pour vous (ex: 0.5)
+
+% Identifier les mauvaises frames
+bad_frames = frame_corr < seuil_bad;
+
+% --- Visualisation ---
+figure;
+plot(frame_corr, 'k'); hold on;
+yline(seuil_bad, 'r--', 'Seuil Bad Frames');
+plot(find(bad_frames), frame_corr(bad_frames), 'r.', 'MarkerSize', 10);
+title('Qualité de l''enregistrement (Corrélation post-recalage)');
+ylabel('Corrélation avec RefImg');
+xlabel('Frames');
+legend('Corrélation', 'Seuil', 'Frames rejetées');
+
+fprintf('Nombre de frames rejetées (Z-motion/Flou) : %d sur %d (%.2f%%)\n', ...
+    sum(bad_frames), length(frame_corr), 100*sum(bad_frames)/length(frame_corr));
+plot (speed/200-(-0.04))
+
 
 % Tr1b=double(F(iscell(:,1)>0,:));
 Tr1b=double(F);

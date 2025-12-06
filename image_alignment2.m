@@ -3,7 +3,7 @@ close all
 %path data
 % path='/Users/platel/Desktop/exp/aurelie/to analyse/444118/clean_plane2/';
 % path='/Users/platel/Desktop/exp/aurelie/to analyse/444113/444113_221010_plane0/';
-path='E:\Data\Aurelie\brainbow analysis\cues\444177\11242023_plane0\\';
+path='E:\Data\Aurelie\data\nocues\444119\220919_plane0\';
 % path='/Volumes/CossartNAS/Aurelie/brainbow analysis/444118/220912_plane0_000/';
 %path='/Users/platel/Desktop/dossier sans titre/';
 % name='P2M_444113_221010_plane0_2023_03_06.12-20-10.nwb';
@@ -11,11 +11,11 @@ path='E:\Data\Aurelie\brainbow analysis\cues\444177\11242023_plane0\\';
 name='test';
 
 %smooth image before ???
-blue=imread([path,'blue.tif']);
-red1040=imread([path,'red.tif']);
-red890=imread([path,'red890.tif']);
-green=imread([path,'green.tif']);
-% calcium=imread([path,'calcium.tif']);
+blue=imread([path,'blue_new.tif']);
+red=imread([path,'red_new.tif']);
+red890=imread([path,'red890_new.tif']);
+green=imread([path,'green_new.tif']);
+calcium=imread([path,'calcium.tif']);
 %composite=imread([path,'composite.tif']);
 
 % PathSave='/Users/platel/Desktop/exp/analysis/';
