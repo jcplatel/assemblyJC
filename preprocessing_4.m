@@ -6,7 +6,7 @@ synchronous_frames = 2;       % 2 default
 sce_n_cells_threshold = 10;
 percentile = NaN;
 minithreshold=0.1;
-SG_window = 5 ;
+SG_window = 9 ;
 
 %% Load current data for motion correction and colorsubstraction
 load(strcat(path, 'Fall.mat'), 'ops');
@@ -14,14 +14,17 @@ fileExists_colorcellnew = isfile(strcat(path ,'colorcellnew.mat'));
 fileExists_colorcell = isfile(strcat(path ,'colorcell.mat'));
 if fileExists_colorcellnew
     load (strcat(path ,'colorcellnew.mat'))
-else
+elseif fileExists_colorcell
     load (strcat(path ,'colorcell.mat'))
 end
-load("E:\Data\Aurelie\data\nocues\444119\220919_plane0\colorcell_registration.mat");%colorcell from Solene;%for444119 220919plane0
-mask_to_keep = colorcell ~= 8;
-Tr1b = double(F);
-Tr1b = Tr1b(mask_to_keep, :);
-colorcell = colorcell(mask_to_keep);
+% load("E:\Data\Aurelie\data\nocues\444119\220919_plane0\colorcell_registration.mat");%colorcell from Solene;%for444119 220919plane0
+ Tr1b = double(F);
+
+if exist('colorcell','var')
+    mask_to_keep = colorcell < 7;
+    Tr1b = Tr1b(mask_to_keep, :);
+    colorcell = colorcell(mask_to_keep);
+end
 %% ===== DÉTECTION DES BAD FRAMES =====
 
 corrXY = ops.corrXY;
@@ -113,7 +116,7 @@ end
 
 
 % ===== CRÉER DES WINDOWS VALIDES (SANS BAD FRAMES) =====
-WinRest = find((speedsm <= 2) & ~bad_frames');
+WinRest = find((speedsm <= 1) & ~bad_frames' & (speedsm > 0));
 % WinActive = find((speedsm > 2) & ~bad_frames');
 WinActive = find(speedsm > 2);
 
@@ -151,12 +154,12 @@ for i = 1:NCell
 end
 
 % ===== ÉLIMINER LES CELLULES HYPERACTIVES =====
-nombre_transients_par_cellule = cellfun(@length, Acttmp2);
-seuil_frequence = prctile(nombre_transients_par_cellule, 99);
-cellules_hyperactives_idx = find(nombre_transients_par_cellule > seuil_frequence);
-if ~isempty(cellules_hyperactives_idx)
-    Raster(cellules_hyperactives_idx, :) = 0;
-end
+% nombre_transients_par_cellule = cellfun(@length, Acttmp2);
+% seuil_frequence = prctile(nombre_transients_par_cellule, 99);
+% cellules_hyperactives_idx = find(nombre_transients_par_cellule > seuil_frequence);
+% if ~isempty(cellules_hyperactives_idx)
+%     Raster(cellules_hyperactives_idx, :) = 0;
+% end
 
 % ===== DÉTECTION DES SCE (Synchronous Events) =====
 %%%%shuffling to find threshold for number of cell for sce detection
@@ -191,14 +194,14 @@ locs = locs(sces_valid_mask);
 pks = pks(sces_valid_mask);
 
 % Filtrer les SCE aberrantes (outliers)
-absolute_threshold = 100;
-TF_relative = isoutlier(pks, "percentiles", [0 99]);
-TF_absolute = pks > absolute_threshold;
-TF_combined = TF_relative & TF_absolute;
-idx_to_remove = find(TF_combined);
-if ~isempty(idx_to_remove)
-    Raster(:, locs(idx_to_remove)) = 0;
-end
+% absolute_threshold = 100;
+% TF_relative = isoutlier(pks, "percentiles", [0 99]);
+% TF_absolute = pks > absolute_threshold;
+% TF_combined = TF_relative & TF_absolute;
+% idx_to_remove = find(TF_combined);
+% if ~isempty(idx_to_remove)
+%     Raster(:, locs(idx_to_remove)) = 0;
+% end
 
 % Recalculer après filtrage
 SumAct = sum(Raster, 1);

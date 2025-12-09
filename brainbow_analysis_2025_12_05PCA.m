@@ -20,8 +20,9 @@ end
 % 444119 19 = num 22
 % for file_num=1:numel (matfile) %54  444178 at 57  65 crash à cause gros artefact 73 plein d'assemblées ani 198, 1306
 % for file_num=[2:5,9,12:14,16,22:27 ,30:33,35,37,46,47,50,53:56,59,61:66,69,70]
-for file_num=22
-    try
+    for file_num=[5,9,12:14,16,22:27 ,30:33,35,37,46,47,50,53:56,59,61:66,69,70]
+% for file_num=22
+    % try
 
     clearvars -except file_num matfile PathSave 
     close all
@@ -41,64 +42,65 @@ for file_num=22
     find_ncluster = true;
     % find_ncluster = false;
     
-    if find_ncluster == true %%find best K
-        for ncluster = 4:20
-            ncluster
-            %clearvars -except start_PC n_bad_no_move nPC_Final Race_For_Clustering best_SClOK nb_lap Sil DB CH find_ncluster SumAct MAct best_S Nz minithreshold percentile synchronous_frames MinPeakDistance MinPeakDistancesce sce_n_cells_threshold Tr1b WinRest file_num matfile PathSave nanalysis NClini nanalysis path filename F iscell speed name identifier ncluster best_NCl sampling_rate session namefull Race
-            % str=['test clustering ' num2str(ncluster) ' clusters'];
-            daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
-            % fprintf ('%s ; ',str , daytime) 
-            namefull = strcat(PathSave ,daytime ,'_',name ,'/');%pc
-            % mkdir (namefull) ;   % make folder for saving analysis
-            NClini  =ncluster;
-            % NClini=5
-            kmean_iter = 100;
-            kmeans_surrogate = 50;
-            kmeans_rnd_iter = 10;
-            savefig = 0;
-            % clustering_assembly_2
-            clustering_PCA1
-            % fprintf('silhouette: %f',  mean(sClOK))
-            best_NCl(ncluster)=NCl;
-            best_S(ncluster)=mean(sCl);
-            best_SClOK(ncluster)=mean(sClOK);
-        end
-    end
+    % if find_ncluster == true %%find best K
+    %     for ncluster = 4:20
+    %         ncluster
+    %         %clearvars -except start_PC n_bad_no_move nPC_Final Race_For_Clustering best_SClOK nb_lap Sil DB CH find_ncluster SumAct MAct best_S Nz minithreshold percentile synchronous_frames MinPeakDistance MinPeakDistancesce sce_n_cells_threshold Tr1b WinRest file_num matfile PathSave nanalysis NClini nanalysis path filename F iscell speed name identifier ncluster best_NCl sampling_rate session namefull Race
+    %         % str=['test clustering ' num2str(ncluster) ' clusters'];
+    %         daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
+    %         % fprintf ('%s ; ',str , daytime) 
+    %         namefull = strcat(PathSave ,daytime ,'_',name ,'/');%pc
+    %         % mkdir (namefull) ;   % make folder for saving analysis
+    %         NClini  =ncluster;
+    %         % NClini=5
+    %         kmean_iter = 100;
+    %         kmeans_surrogate = 50;
+    %         kmeans_rnd_iter = 10;
+    %         savefig = 0;
+    %         % clustering_assembly_2
+    %         clustering_PCA1
+    %         % fprintf('silhouette: %f',  mean(sClOK))
+    %         best_NCl(ncluster)=NCl;
+    %         best_S(ncluster)=mean(sCl);
+    %         best_SClOK(ncluster)=mean(sClOK);
+    %     end
+    % end
+    % 
+    % for nanalysis=1%4:20%[12 ,15, 17, 18]%:5
+    % 
+    %     %clearvars -except NCell n_bad_no_move start_PC nPC_Final Race_For_Clustering best_SClOK Sil CH DB find_ncluster MAct best_S Nz minithreshold percentile synchronous_frames MinPeakDistance MinPeakDistancesce sce_n_cells_threshold Tr1b WinRest file_num matfile PathSave nanalysis NClini path filename F iscell speed name identifier best_NCl sampling_rate session Race
+    %     daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
+    %     % namefull=strcat(PathSave ,daytime ,'_',name ,'_exvivocolorPC2_30/');%pc
+    %     namefull=strcat(PathSave ,daytime ,'_',name ,'_NCl_',num2str(nanalysis),'/');%pc
+    %     mkdir (namefull) ;   % make folder for saving analysis
+    % 
+    %     if find_ncluster==true
+    %         bestK2 
+    %     else 
+    %         NClini=16;
+    %     end
+    % 
+    %     % NClini=nanalysis;
+    %     fprintf ('clusters: %d ', NClini)
+    %     kmean_iter=1000; kmeans_surrogate=100; kmeans_rnd_iter=100;savefig=1;
+    %     % clustering_assembly_2 
+    %     clustering_PCA1
+    %     fprintf ('clusters: %d ', NCl)
+    %     graphSCE
+    %     exportdata
+    %     save(strcat(namefull,'results.mat')) 
+    %     raster_rastermap
+    % 
+    %     if NCl>1
+    %         rastercolor
+    %         brainbowassemblies2025_11_26
+    %         distance_calculation
+    %         export_data_brainbow
+    %         save(strcat(namefull,'brainbow.mat') )
+    %     end
+    % end
 
-    for nanalysis=1%4:20%[12 ,15, 17, 18]%:5
-
-        %clearvars -except NCell n_bad_no_move start_PC nPC_Final Race_For_Clustering best_SClOK Sil CH DB find_ncluster MAct best_S Nz minithreshold percentile synchronous_frames MinPeakDistance MinPeakDistancesce sce_n_cells_threshold Tr1b WinRest file_num matfile PathSave nanalysis NClini path filename F iscell speed name identifier best_NCl sampling_rate session Race
-        daytime = datestr(now,'yy_mm_dd_HH_MM_SS');
-        % namefull=strcat(PathSave ,daytime ,'_',name ,'_exvivocolorPC2_30/');%pc
-        namefull=strcat(PathSave ,daytime ,'_',name ,'_NCl_',num2str(nanalysis),'/');%pc
-        mkdir (namefull) ;   % make folder for saving analysis
-
-        if find_ncluster==true
-            bestK2 
-        else 
-            NClini=13;
-        end
-
-        % NClini=nanalysis;
-        fprintf ('clusters: %d ', NClini)
-        kmean_iter=1000; kmeans_surrogate=100; kmeans_rnd_iter=100;savefig=1;
-        % clustering_assembly_2 
-        clustering_PCA1
-        fprintf ('clusters: %d ', NCl)
-        exportdata
-        save(strcat(namefull,'results.mat')) 
-        raster_rastermap
-
-        if NCl>1
-            rastercolor
-            brainbowassemblies2025_11_26
-            distance_calculation
-            export_data_brainbow
-            save(strcat(namefull,'brainbow.mat') )
-        end
-    end
-
-    catch exception
-        disp(exception.message);  % Display the error message
-    end
+    % catch exception
+    %     disp(exception.message);  % Display the error message
+    % end
 end

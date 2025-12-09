@@ -121,7 +121,7 @@ end
 
 
 % ===== CRÉER DES WINDOWS VALIDES (SANS BAD FRAMES) =====
-WinRest = find((speedsm <= 2) & ~bad_frames');
+WinRest = find((speedsm <= 0.5) & ~bad_frames');
 % WinActive = find((speedsm > 2) & ~bad_frames');
 WinActive = find(speedsm > 2);
 
@@ -233,116 +233,120 @@ end
 Race = double(Race);
 
 % ===== PCA =====
-
-% Paramètres
-nShuffles = 100;  % 50 est généralement suffisant pour stabiliser le seuil
-alpha = 95;      % Seuil de confiance (95ème percentile)
-
-% 1. PCA sur données réelles
-warning('off', 'all');
-[~, score, latent_real] = pca(Race'); 
-nPCs = length(latent_real);
-[nTime, nNeurons] = size(Race');
-
-% Matrice pour stocker les valeurs propres de chaque shuffle
-null_latents = zeros(nPCs, nShuffles);
-
-% 2. Boucle de Shuffles (peut prendre quelques secondes/minutes)
-% fprintf('Lancement de %d shuffles...\n', nShuffles);
-
-for s = 1:nShuffles
-    % Création d'une matrice aléatoire (Circular Shift)
-    Race_Shuffled = zeros(nTime, nNeurons);
-    for i = 1:nNeurons
-        shift = randi(nTime); 
-        % Décalage circulaire pour garder l'autocorrélation temporelle de la cellule
-        Race_Shuffled(:, i) = circshift(Race(i, :)', shift);
+if options.PCA_test==true
+    % Paramètres
+    nShuffles = 100;  % 50 est généralement suffisant pour stabiliser le seuil
+    alpha = 95;      % Seuil de confiance (95ème percentile)
+    
+    % 1. PCA sur données réelles
+    warning('off', 'all');
+    [~, score, latent_real] = pca(Race'); 
+    nPCs = length(latent_real);
+    [nTime, nNeurons] = size(Race');
+    
+    % Matrice pour stocker les valeurs propres de chaque shuffle
+    null_latents = zeros(nPCs, nShuffles);
+    
+    % 2. Boucle de Shuffles (peut prendre quelques secondes/minutes)
+    % fprintf('Lancement de %d shuffles...\n', nShuffles);
+    
+    for s = 1:nShuffles
+        % Création d'une matrice aléatoire (Circular Shift)
+        Race_Shuffled = zeros(nTime, nNeurons);
+        for i = 1:nNeurons
+            shift = randi(nTime); 
+            % Décalage circulaire pour garder l'autocorrélation temporelle de la cellule
+            Race_Shuffled(:, i) = circshift(Race(i, :)', shift);
+        end
+        
+        % PCA sur le bruit
+        [~, ~, latent_null] = pca(Race_Shuffled);
+        null_latents(:, s) = latent_null;
     end
+    warning('on', 'all');
     
-    % PCA sur le bruit
-    [~, ~, latent_null] = pca(Race_Shuffled);
-    null_latents(:, s) = latent_null;
-end
-warning('on', 'all');
-
-% 3. Calcul du seuil statistique (Parallel Analysis)
-% Pour chaque PC, on regarde quelle est la valeur propre max du bruit dans 95% des cas
-threshold_curve = prctile(null_latents, alpha, 2); 
-
-% 4. Comparaison : Réel vs Bruit
-% On garde tant que la vraie valeur propre est supérieure au seuil de bruit
-keep_mask = latent_real > threshold_curve;
-
-% On cherche le PREMIER moment où le signal réel passe SOUS le bruit
-first_crossing = find(latent_real < threshold_curve, 1, 'first');
-
-if isempty(first_crossing)
-    % Si ça ne croise jamais (cas impossible mathématiquement sauf bug)
-    nPC_Final = nPCs; 
-else
-    % On prend juste avant le croisement
-    % nPC_Final = first_crossing - 1;
-    nPC_Final = first_crossing + 5;
-end
-
-%fprintf('Nombre optimal corrigé : %d\n', nPC_Final);
-
-
-% Visualisation pour vérifier (Optionnel mais recommandé)
-% figure;
-% plot(1:50, latent_real(1:50), '-o', 'LineWidth', 2, 'DisplayName', 'Données Réelles'); hold on;
-% plot(1:50, threshold_curve(1:50), '--r', 'LineWidth', 2, 'DisplayName', 'Seuil Bruit (95%)');
-% xline(nPC_Final, 'k:', ['Cutoff: ' num2str(nPC_Final)]);
-% legend;
-% xlabel('Composante Principale'); ylabel('Variance (Eigenvalue)');
-% title('Parallel Analysis avec Shuffles');
-% grid on;
-% 
-% fprintf('Nombre optimal de PC (Parallel Analysis) : %d\n', nPC_Final);
-nPC_Final = min (nPC_Final,NCell/10);
-
-% Paramètres
-corr_threshold = 0.70; % Si corr > 0.7, on considère que c'est un artefact global
-max_start_pc = 4;      % On ne rejette pas au-delà de la PC4 par sécurité
-
-% 2. Calcul de la Trace Moyenne de la population (Signal Global)
-% Moyenne de l'activité de toutes les cellules à chaque instant T
-global_signal = mean(Race, 1)'; % (nTime x 1)
-
-% 3. Boucle de décision automatique
-start_PC = 1; % Par défaut on commence à 1
-
-for i = 1:max_start_pc
-    % Calcul de la corrélation absolue entre la PC(i) et le signal global
-    r = corr(score(:, i), global_signal);
+    % 3. Calcul du seuil statistique (Parallel Analysis)
+    % Pour chaque PC, on regarde quelle est la valeur propre max du bruit dans 95% des cas
+    threshold_curve = prctile(null_latents, alpha, 2); 
     
-    % fprintf('PC %d vs Global Signal : Correlation = %.2f ', i, r);
+    % 4. Comparaison : Réel vs Bruit
+    % On garde tant que la vraie valeur propre est supérieure au seuil de bruit
+    keep_mask = latent_real > threshold_curve;
     
-    if abs(r) > corr_threshold
-        % fprintf('-> REJETÉE (Artefact probable)\n');
-        start_PC = i + 1; % On décale le début
+    % On cherche le PREMIER moment où le signal réel passe SOUS le bruit
+    first_crossing = find(latent_real < threshold_curve, 1, 'first');
+    
+    if isempty(first_crossing)
+        % Si ça ne croise jamais (cas impossible mathématiquement sauf bug)
+        nPC_Final = nPCs; 
     else
-        % fprintf('-> GARDÉE (Signal spécifique)\n');
-        break; % Dès qu'une PC est "propre", on s'arrête et on garde tout le reste
+        % On prend juste avant le croisement
+        % nPC_Final = first_crossing - 1;
+        nPC_Final = first_crossing + 5;
     end
+    
+    %fprintf('Nombre optimal corrigé : %d\n', nPC_Final);
+    
+    
+    % Visualisation pour vérifier (Optionnel mais recommandé)
+    % figure;
+    % plot(1:50, latent_real(1:50), '-o', 'LineWidth', 2, 'DisplayName', 'Données Réelles'); hold on;
+    % plot(1:50, threshold_curve(1:50), '--r', 'LineWidth', 2, 'DisplayName', 'Seuil Bruit (95%)');
+    % xline(nPC_Final, 'k:', ['Cutoff: ' num2str(nPC_Final)]);
+    % legend;
+    % xlabel('Composante Principale'); ylabel('Variance (Eigenvalue)');
+    % title('Parallel Analysis avec Shuffles');
+    % grid on;
+    % 
+    % fprintf('Nombre optimal de PC (Parallel Analysis) : %d\n', nPC_Final);
+    nPC_Final = min (nPC_Final,NCell/10);
+    
+    % Paramètres
+    corr_threshold = 0.70; % Si corr > 0.7, on considère que c'est un artefact global
+    max_start_pc = 4;      % On ne rejette pas au-delà de la PC4 par sécurité
+    
+    % 2. Calcul de la Trace Moyenne de la population (Signal Global)
+    % Moyenne de l'activité de toutes les cellules à chaque instant T
+    global_signal = mean(Race, 1)'; % (nTime x 1)
+    
+    % 3. Boucle de décision automatique
+    start_PC = 1; % Par défaut on commence à 1
+    
+    for i = 1:max_start_pc
+        % Calcul de la corrélation absolue entre la PC(i) et le signal global
+        r = corr(score(:, i), global_signal);
+        
+        % fprintf('PC %d vs Global Signal : Correlation = %.2f ', i, r);
+        
+        if abs(r) > corr_threshold
+            % fprintf('-> REJETÉE (Artefact probable)\n');
+            start_PC = i + 1; % On décale le début
+        else
+            % fprintf('-> GARDÉE (Signal spécifique)\n');
+            break; % Dès qu'une PC est "propre", on s'arrête et on garde tout le reste
+        end
+    end
+    % % 
+    start_PC=2;
+    nPC_Final=100;
+    
+    Race_For_Clustering = score(:, start_PC:nPC_Final)';
 end
-% % 
-start_PC=2;
-nPC_Final=100;
-
-Race_For_Clustering = score(:, start_PC:nPC_Final)';
-
 %%
 DataOut.Tr1b = Tr1b;           % La version filtrée/traitée
 DataOut.Raster = Raster;
 DataOut.Race = Race;           % Raster of Activity (Calcium Events)
 DataOut.RasterRace = RasterRace;
-DataOut.Race_For_Clustering = Race_For_Clustering;
+if options.PCA_test==true
+    DataOut.Race_For_Clustering = Race_For_Clustering;
+end
 DataOut.colorcell = colorcell;
 
 % Groupe B : Statistiques / Métriques / Infos légères
 Stats.NCell = NCell;
 Stats.SumAct = SumAct;
 Stats.MAct = MAct;
-Stats.start_PC = start_PC;
-Stats.nPC_Final = nPC_Final;
+if options.PCA_test==true
+    Stats.start_PC = start_PC;
+    Stats.nPC_Final = nPC_Final;
+end
